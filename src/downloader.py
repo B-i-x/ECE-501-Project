@@ -25,7 +25,6 @@ import zipfile
 import tempfile
 import shutil
 
-
 def safe_mkdir(p: Path):
     p.mkdir(parents=True, exist_ok=True)
 
