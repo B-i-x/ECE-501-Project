@@ -1,7 +1,11 @@
-import sqlite3, pandas as pd, pyodbc
+import sqlite3
+import pandas as pd
+import pyodbc
 
-src = pyodbc.connect(r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=C:\path\your.accdb;")
-dst = sqlite3.connect("data.sqlite")
+DATA_PATH = r"C:\Users\alexr\Downloads\enrollment_2024\ENROLL2024_20241105.accdb"
+
+src = pyodbc.connect(rf"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={DATA_PATH};")
+dst = sqlite3.connect("data.db")
 
 # copy all tables
 cursor = src.cursor()
