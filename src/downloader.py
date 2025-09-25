@@ -1,134 +1,207 @@
 #!/usr/bin/env python3
 """
-Fetch a ZIP from a URL, extract, locate an .accdb, and place it in:
-    data/nyse_data/{file_folder}
+Bulk fetcher for multiple DataLink datasets.
 
-Usage examples:
-  python fetch_accdb.py \
-      --url "https://example.com/nyse-data.zip" \
-      --file-folder "2025-09-24" \
-      --zip-root "unzipped/top/dir"        # OPTIONAL: path inside the ZIP
-      --accdb-name "nyse_data.accdb"       # OPTIONAL: exact .accdb to pick
-
-Notes:
-- If --zip-root is provided, the search for .accdb starts there (inside the archive).
-- If --accdb-name is provided, we'll select that file if found; otherwise first .accdb found.
-- If the destination already contains the .accdb (by that name if provided, otherwise any .accdb),
-  the script exits without downloading.
+- Iterates ALL_DATASETS and processes each in sequence.
+- Clear progress printouts for each dataset:
+    - Start notice with index
+    - Download progress (percent or bytes)
+    - ZIP validation
+    - Extraction and copy steps
+    - Already-present early exit
+- No special symbols in output.
 """
 
-import argparse
 import sys
+import time
 from pathlib import Path
 import urllib.request
 import zipfile
 import tempfile
 import shutil
+from dataclasses import dataclass
+
+
+from config import AppConfig, DataLink
+
 
 def safe_mkdir(p: Path):
     p.mkdir(parents=True, exist_ok=True)
 
 
-def accdb_already_there(dest_dir: Path, accdb_name: str | None) -> Path | None:
-    if accdb_name:
-        candidate = dest_dir / accdb_name
-        return candidate if candidate.exists() else None
-    # No specific name: if any .accdb is present, consider it "already there"
-    for p in dest_dir.glob("*.accdb"):
-        if p.is_file():
-            return p
-    return None
+def accdb_already_there(dest_dir: Path, accdb_basename: str) -> Path | None:
+    candidate = dest_dir / accdb_basename
+    return candidate if candidate.exists() else None
 
 
-def download_zip(url: str, tmp_zip_path: Path):
-    with urllib.request.urlopen(url) as r, tmp_zip_path.open("wb") as f:
-        shutil.copyfileobj(r, f)
+def _norm_zip_path(p: str) -> str:
+    p = p.replace("\\", "/")
+    while p.startswith("./"):
+        p = p[2:]
+    while p.startswith("/"):
+        p = p[1:]
+    return p
 
 
-def find_accdb_in_extract(extract_root: Path, zip_root: str | None, accdb_name: str | None) -> Path | None:
-    """
-    Returns Path to the located .accdb inside extract_root, or None if not found.
-    - If zip_root is provided, search starts at extract_root/zip_root.
-    - If accdb_name is provided, prefer a file with that exact name.
-    """
-    search_base = extract_root / zip_root if zip_root else extract_root
-    if not search_base.exists():
+def _choose_best_member(namelist: list[str], tail: str) -> str | None:
+    tail = _norm_zip_path(tail)
+    matches = [name for name in namelist if _norm_zip_path(name).endswith(tail)]
+    if not matches:
         return None
-
-    # If specific name given, look for it first
-    if accdb_name:
-        for p in search_base.rglob(accdb_name):
-            if p.is_file() and p.suffix.lower() == ".accdb":
-                return p
-
-    # Otherwise return the first .accdb we find
-    for p in search_base.rglob("*.accdb"):
-        if p.is_file():
-            return p
-    return None
+    matches.sort(key=lambda s: len(s))  # shortest full path first
+    return matches[0]
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Download ZIP, extract .accdb, place into data/nyse_data/{file_folder}.")
-    parser.add_argument("--url", required=True, help="Direct URL to the ZIP file.")
-    parser.add_argument("--file-folder", required=True, help="Subfolder name under data/nyse_data for destination.")
-    parser.add_argument("--zip-root", default=None,
-                        help="(Optional) Path inside the ZIP to start searching for the .accdb (e.g., 'top/dir').")
-    parser.add_argument("--accdb-name", default=None,
-                        help="(Optional) Exact .accdb file name to select if multiple exist.")
-    args = parser.parse_args()
+def _format_bytes(n: int) -> str:
+    # Human friendly bytes
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if n < 1024:
+            return f"{n:.1f} {unit}" if unit != "B" else f"{n} {unit}"
+        n /= 1024
+    return f"{n:.1f} PB"
 
-    dest_dir = Path("data") / "nyse_data" / args.file_folder
+
+def download_zip_with_progress(url: str, tmp_zip_path: Path):
+    """
+    Stream download with progress printing.
+    Prints either percentage (when content-length is available) or running byte count.
+    """
+    chunk_size = 1024 * 256  # 256 KB
+    start = time.time()
+
+    with urllib.request.urlopen(url) as r, tmp_zip_path.open("wb") as f:
+        total = r.headers.get("Content-Length")
+        total = int(total) if total is not None else None
+        downloaded = 0
+        last_print = 0.0
+
+        print("  step: downloading")
+        while True:
+            chunk = r.read(chunk_size)
+            if not chunk:
+                break
+            f.write(chunk)
+            downloaded += len(chunk)
+
+            now = time.time()
+            # throttle prints to ~5 per second
+            if now - last_print >= 0.2:
+                if total:
+                    pct = downloaded / total * 100
+                    print(f"    progress: {pct:6.2f}%  ({_format_bytes(downloaded)} of {_format_bytes(total)})", end="\r", flush=True)
+                else:
+                    print(f"    progress: {_format_bytes(downloaded)} downloaded", end="\r", flush=True)
+                last_print = now
+
+        # ensure final line is printed cleanly
+        if total:
+            print(f"    progress: 100.00%  ({_format_bytes(downloaded)} of {_format_bytes(total)})")
+        else:
+            print(f"    progress: {_format_bytes(downloaded)} downloaded")
+
+    elapsed = time.time() - start
+    print(f"  done: download finished in {elapsed:.1f}s")
+
+
+def extract_target_from_zip(zip_path: Path, target_rel_path: str, dest_path: Path) -> bool:
+    """
+    Extract the member whose ZIP path ends with target_rel_path into dest_path.
+    Returns True on success, False if not found.
+    """
+    print("  step: validating zip")
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        namelist = zf.namelist()
+        member = _choose_best_member(namelist, target_rel_path)
+        if member is None:
+            return False
+        print("  step: extracting target file")
+        safe_mkdir(dest_path.parent)
+        with zf.open(member) as src, dest_path.open("wb") as dst:
+            shutil.copyfileobj(src, dst)
+    print("  done: extraction complete")
+    return True
+
+
+def fetch_accdb_from_datalink(link: DataLink) -> int:
+    """
+    - Destination: AppConfig.ny_edu_data / link.folder_name / basename(path_to_data_from_zip_root)
+    - If destination file exists, skip download.
+    - Download, validate, extract, and place.
+    Returns a status code similar to typical CLI tools.
+    """
+    dest_dir = Path(AppConfig.ny_edu_data) / link.folder_name
     safe_mkdir(dest_dir)
 
-    # Skip if we already have it
-    existing = accdb_already_there(dest_dir, args.accdb_name)
-    if existing:
-        print(f"✔ ACCDB already present at: {existing}")
-        sys.exit(0)
+    accdb_basename = Path(link.path_to_data_from_zip_root).name
+    dest_path = dest_dir / accdb_basename
 
-    # Work in a temp area
+    if dest_path.exists():
+        print(f"  info: destination already has {dest_path}")
+        return 0
+
     with tempfile.TemporaryDirectory(prefix="accdb_fetch_") as tdir:
         tdir = Path(tdir)
         zip_path = tdir / "payload.zip"
 
-        print(f"↓ Downloading ZIP from {args.url} ...")
         try:
-            download_zip(args.url, zip_path)
+            download_zip_with_progress(link.url, zip_path)
         except Exception as e:
-            print(f"✖ Failed to download ZIP: {e}", file=sys.stderr)
-            sys.exit(2)
-
-        # Extract
-        extract_root = tdir / "extract"
-        safe_mkdir(extract_root)
+            print(f"  error: failed to download zip. detail: {e}")
+            return 2
 
         try:
-            with zipfile.ZipFile(zip_path, "r") as zf:
-                zf.extractall(extract_root)
+            ok = extract_target_from_zip(zip_path, link.path_to_data_from_zip_root, dest_path)
         except zipfile.BadZipFile:
-            print("✖ The downloaded file is not a valid ZIP.", file=sys.stderr)
-            sys.exit(3)
+            print("  error: the downloaded file is not a valid zip")
+            return 3
 
-        # Locate .accdb
-        accdb_path = find_accdb_in_extract(extract_root, args.zip_root, args.accdb_name)
-        if not accdb_path:
-            base_hint = f"{args.zip_root}/" if args.zip_root else ""
-            print(f"✖ No .accdb found under extracted '{base_hint}'.", file=sys.stderr)
-            sys.exit(4)
+        if not ok:
+            hint = _norm_zip_path(link.path_to_data_from_zip_root)
+            print(f"  error: target not found in zip. looked for path ending with '{hint}'")
+            return 4
 
-        final_name = args.accdb_name if args.accdb_name else accdb_path.name
-        dest_path = dest_dir / final_name
-
-        # Double-check we didn't race with a parallel process
         if dest_path.exists():
-            print(f"✔ ACCDB already present at: {dest_path}")
-            sys.exit(0)
+            print(f"  done: placed file at {dest_path}")
+            return 0
 
-        # Copy into place
-        shutil.copy2(accdb_path, dest_path)
-        print(f"✔ ACCDB copied to: {dest_path}")
+        print("  error: destination file missing after extraction")
+        return 5
 
+
+
+
+
+from config import ALL_DATASETS
+def main():
+    total = len(ALL_DATASETS)
+    results = []
+    print(f"starting bulk import for {total} dataset(s)")
+    for i, link in enumerate(ALL_DATASETS, start=1):
+        print("")
+        print(f"[{i}/{total}] dataset: {link.folder_name}")
+        print(f"  source: {link.url}")
+        print(f"  target: {AppConfig.ny_edu_data}/{link.folder_name}/{Path(link.path_to_data_from_zip_root).name}")
+        status = fetch_accdb_from_datalink(link)
+        results.append((link.folder_name, status))
+
+    print("\nsummary:")
+    for name, status in results:
+        if status == 0:
+            print(f"  {name}: ok")
+        elif status == 2:
+            print(f"  {name}: download failed")
+        elif status == 3:
+            print(f"  {name}: bad zip")
+        elif status == 4:
+            print(f"  {name}: target not found in zip")
+        else:
+            print(f"  {name}: error code {status}")
+
+    # nonzero exit if any failed
+    if any(code != 0 for _, code in results):
+        sys.exit(1)
+    sys.exit(0)
 
 if __name__ == "__main__":
+    # You can swap in any DataLink you want here, or import fetch_accdb_from_datalink elsewhere.
     main()
