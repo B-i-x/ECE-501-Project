@@ -22,5 +22,6 @@
 
 4. **Run the script**:
     ```bash
-    python {name_of_hw_script}.py
+    python src\downloader.py --url "https://data.nysed.gov/files/studed/23-24/STUDED2024.zip" --file-folder "student_educator_database_23_24" --accdb-name "STUDED_2024.accdb"
+
     ```
