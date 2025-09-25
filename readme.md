@@ -32,3 +32,12 @@
     ```bash
     python src\downloader.py --url "https://data.nysed.gov/files/essa/23-24/SRC2024.zip" --file-folder "reportcard_database_23_24" --accdb-name "SRC2024_Group5.accdb"
     ```
+
+5. example sql query
+'''sql
+SELECT ENTITY_CD, ENTITY_NAME, NUM_SUSPENSIONS
+FROM suspensions
+WHERE YEAR = 2022
+ORDER BY NUM_SUSPENSIONS DESC
+LIMIT 10;
+'''
