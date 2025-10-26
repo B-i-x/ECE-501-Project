@@ -1,0 +1,80 @@
+Project NYSED_Star {
+  Note: 'Star schema for NYSED analytics: enrollment/attendance relate to 3–8 ELA/Math achievement.'
+}
+
+Table dim_district {
+  district_key integer [pk]
+  district_id  text [unique, not null]
+  district_name text
+  county_name   text
+  nrc_code      text
+  nrc_desc      text
+}
+
+Table dim_school {
+  school_key   integer [pk]
+  school_id    text [unique, not null]
+  district_key integer [not null, ref: > dim_district.district_key]
+  school_name  text
+}
+
+Table dim_year {
+  year_key integer [pk]           // 2024
+  school_year_label text          // 2023-24
+}
+
+Table dim_subject {
+  subject_key integer [pk]
+  subject_id  text [unique, not null]  // 'ELA','Math'
+  subject_name text
+}
+
+Table dim_grade {
+  grade_key integer [pk]
+  grade_id  text [unique, not null]    // '3'..'8','All'
+}
+
+Table dim_subgroup {
+  subgroup_key  integer [pk]
+  subgroup_id   text [unique, not null] // 'F','M','SWD','ELL','ED','Asian',...
+  subgroup_name text
+}
+
+Table fact_enrollment {
+  year_key     integer [not null, ref: > dim_year.year_key]
+  school_key   integer [not null, ref: > dim_school.school_key]
+  subgroup_key integer [not null, ref: > dim_subgroup.subgroup_key]
+  n_students   integer
+  Indexes {
+    (year_key, school_key, subgroup_key) [pk]
+  }
+}
+
+Table fact_attendance {
+  year_key     integer [not null, ref: > dim_year.year_key]
+  school_key   integer [not null, ref: > dim_school.school_key]
+  subgroup_key integer [not null, ref: > dim_subgroup.subgroup_key]
+  absent_count integer
+  absence_rate real     // 0..1
+  enrollment   integer
+  data_rep_flag text
+  partial_data_flag text
+  count_zero_flag text
+  Indexes {
+    (year_key, school_key, subgroup_key) [pk]
+  }
+}
+
+Table fact_assessment {
+  year_key     integer [not null, ref: > dim_year.year_key]
+  school_key   integer [not null, ref: > dim_school.school_key]
+  subject_key  integer [not null, ref: > dim_subject.subject_key]
+  grade_key    integer [not null, ref: > dim_grade.grade_key]
+  subgroup_key integer [not null, ref: > dim_subgroup.subgroup_key]
+  tested       integer
+  n_qual       integer
+  qual_rate    real     // 0..1
+  Indexes {
+    (year_key, school_key, subject_key, grade_key, subgroup_key) [pk]
+  }
+}
