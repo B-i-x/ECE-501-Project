@@ -1,0 +1,55 @@
+CREATE TABLE Fact_SchoolPerformace (
+  sk_institution_core INTEGER NOT NULL,
+  sk_district_geo INTEGER,
+  sk_needs INTEGER,
+  sk_grouping INTEGER,
+  sk_accountability INTEGER,
+  sk_instr_model INTEGER,
+  sk_year INTEGER NOT NULL,
+
+  -- Attendance overall
+  attendance_rate REAL,                -- Attendance.ATTENDANCE_RATE
+  attendance_reported TEXT,            -- Attendance.DATA_REPORTED
+
+  -- Chronic absenteeism (elementary/middle emphasis)
+  ca_enrollment INTEGER,               -- ACC EM Chronic Absenteeism.ENROLLMENT
+  ca_absent_count INTEGER,             -- ABSENT_COUNT
+  ca_absent_rate REAL,                 -- ABSENT_RATE
+
+  -- Participation meta
+  ela_pct_tested REAL,                 -- from Annual EM ELA.PCT_TESTED
+  math_pct_tested REAL,                -- from Annual EM MATH.PCT_TESTED
+  ela_per_prof REAL,                   -- Annual EM ELA.PER_PROF aggregated to school-year (see ETL notes)
+  math_per_prof REAL,                  -- Annual EM MATH.PER_PROF aggregated
+
+  -- FRPL
+  frl_per_free REAL,                   -- Free Reduced Price Lunch.PER_FREE_LUNCH
+  frl_per_reduced REAL,                -- PER_REDUCED_LUNCH
+
+  -- Class size
+  avg_class_size REAL,                 -- Average Class Size.AVERAGE_CLASS_SIZE
+
+  -- Staffing quality
+  per_teach_inexp REAL,                -- Inexperienced Teachers and Principals.PER_TEACH_INEXP
+  per_princ_inexp REAL,                -- PER_PRINC_INEXP
+  per_out_of_cert REAL,                -- Teachers Teaching Out of Certification.PER_OUT_CERT
+
+  -- Discipline
+  per_suspensions REAL,                -- Suspensions.PER_SUSPENSIONS
+
+  -- Instructional modalities (as measures)
+  per_remote REAL,
+  per_in_person REAL,
+  per_both REAL,
+
+  -- Finance
+  per_federal_exp REAL,                -- Expenditures per Pupil.PER_FEDERAL_EXP
+  per_state_local_exp REAL,            -- PER_STATE_LOCAL_EXP
+  per_fed_state_local_exp REAL,        -- PER_FED_STATE_LOCAL_EXP
+
+  -- Small convenience attributes as degenerate dims if wanted
+  entity_name TEXT,                    -- keep for quick display
+
+  PRIMARY KEY (sk_institution_core, sk_year),
+  all relevant foreign keys
+);
