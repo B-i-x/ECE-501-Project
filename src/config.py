@@ -26,6 +26,13 @@ REPORT_CARD_23_24 = DataLink(
     folder_name="reportcard_database_23_24"
 )
 
+GRADUATION_RATE_23_24 = DataLink(
+    url="https://data.nysed.gov/files/gradrate/23-24/gradrate.zip",
+    path_to_data_from_zip_root="SRC2024_Group5.accdb",
+    folder_name="reportcard_database_23_24"
+)
+
+
 ALL_DATASETS = [
     STUDENT_EDUCATOR_DATABASE_23_24,
     REPORT_CARD_23_24,

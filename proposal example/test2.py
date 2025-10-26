@@ -1,5 +1,8 @@
 import sqlite3, os
 import pandas as pd
+import numpy as np
+import matplotlib.pylab as plt
+import seaborn as sns
 import sqlalchemy as sa
 import pyodbc
 from collections import Counter
