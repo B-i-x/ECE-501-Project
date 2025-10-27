@@ -91,17 +91,17 @@ def main():
     print(f"[DEBUG] Annual EM MATH rows: {n1}")
 
 
-    # Step: Print distinct subgroup names with actual values
-    print("\n[INFO] Listing distinct SUBGROUP_NAME values in Annual EM MATH:")
-    subgroups = run(conn, dedent("""
-        SELECT DISTINCT TRIM(SUBGROUP_NAME) AS subgroup
-        FROM src."Annual EM MATH"
-        ORDER BY subgroup;
-    """), "Subgroup list", preview=100, fetch_all=True)
+    # # Step: Print distinct subgroup names with actual values
+    # print("\n[INFO] Listing distinct SUBGROUP_NAME values in Annual EM MATH:")
+    # subgroups = run(conn, dedent("""
+    #     SELECT DISTINCT TRIM(SUBGROUP_NAME) AS subgroup
+    #     FROM src."Annual EM MATH"
+    #     ORDER BY subgroup;
+    # """), "Subgroup list", preview=100, fetch_all=True)
 
-    print(f"[DEBUG] Total distinct subgroups: {len(subgroups)}\n")
-    for sg in subgroups:
-        print(" -", sg[0])
+    # print(f"[DEBUG] Total distinct subgroups: {len(subgroups)}\n")
+    # for sg in subgroups:
+    #     print(" -", sg[0])
 
 
 
@@ -116,23 +116,21 @@ def main():
 
 
     # Step 1. Build math_overall view for All Students, grades 3 to 8
-    run(conn, dedent("""
-      DROP VIEW IF EXISTS math_overall;
-      CREATE TEMP VIEW math_overall AS
-      SELECT
+    run(conn, """
+    DROP VIEW IF EXISTS math_overall;
+    CREATE TEMP VIEW math_overall AS
+    SELECT
         m.ENTITY_CD AS entity_cd,
         CAST(m.YEAR AS INTEGER) AS year,
-        SUM(CAST(m.NUM_PROF AS INTEGER)) AS num_prof,
-        SUM(CAST(m.NUM_TESTED AS INTEGER)) AS num_tested
-      FROM src."Annual EM MATH" m
-      WHERE m.ASSESSMENT_NAME LIKE 'Grade %'
-        AND m.SUBGROUP_NAME = 'All Students'
-      GROUP BY m.ENTITY_CD, CAST(m.YEAR AS INTEGER);
-    """), "Create view math_overall")
-
-    n1 = scalar(conn, "SELECT COUNT(*) FROM math_overall;")
-    print(f"[DEBUG] math_overall rows: {n1}")
-    run(conn, "SELECT * FROM math_overall ORDER BY entity_cd, year LIMIT ?;", "Preview math_overall", args.preview, params=[args.preview])
+        SUM(CAST(NULLIF(REPLACE(m.NUM_PROF,   ',', ''), '') AS INTEGER))     AS num_prof,
+        SUM(CAST(NULLIF(REPLACE(m.NUM_TESTED, ',', ''), '') AS INTEGER))     AS num_tested
+    FROM src."Annual EM MATH" m
+    WHERE TRIM(UPPER(m.SUBGROUP_NAME)) LIKE 'ALL STUDENTS%'
+        AND UPPER(m.ASSESSMENT_NAME) LIKE '%MATH%'
+    GROUP BY m.ENTITY_CD, CAST(m.YEAR AS INTEGER);
+    """, "Create view math_overall")
+    print("[DEBUG] math_overall rows:", scalar(conn, "SELECT COUNT(*) FROM math_overall;"))
+    run(conn, "SELECT * FROM math_overall ORDER BY entity_cd, year LIMIT 10;", "Preview math_overall", preview=10)
 
     # Step 2. Outcome view math_outcome with proficiency rate
     run(conn, dedent("""
@@ -206,10 +204,10 @@ def main():
         run(conn, f"SELECT * FROM corr_{f} ORDER BY entity_cd LIMIT ?;", f"Preview corr_{f}", args.preview, params=[args.preview])
 
     # Step 6. Join all correlations into one summary
-    run(conn, dedent("""
-      DROP TABLE IF EXISTS corr_summary;
-      CREATE TEMP TABLE corr_summary AS
-      SELECT
+    run(conn, """
+    DROP TABLE IF EXISTS corr_summary;
+    CREATE TEMP TABLE corr_summary AS
+    SELECT
         e.entity_cd,
         e.r_per_ell,
         s.r_per_swd,
@@ -218,14 +216,15 @@ def main():
         h.r_per_hisp,
         a.r_per_asian,
         w.r_per_white
-      FROM corr_per_ell e
-      LEFT JOIN corr_per_swd s   ON s.entity_cd = e.entity_cd
-      LEFT JOIN corr_per_ecdis ec ON ec.entity_cd = e.entity_cd
-      LEFT JOIN corr_per_black b  ON b.entity_cd = e.entity_cd
-      LEFT JOIN corr_per_hisp h   ON h.entity_cd = e.entity_cd
-      LEFT JOIN corr_per_asian a  ON a.entity_cd = e.entity_cd
-      LEFT JOIN corr_per_white w  ON w.entity_cd = e.entity_cd;
-    """).replace("corr_per_", "corr_"), "Create corr_summary")
+    FROM corr_per_ell   AS e
+    LEFT JOIN corr_per_swd   AS s  ON s.entity_cd  = e.entity_cd
+    LEFT JOIN corr_per_ecdis AS ec ON ec.entity_cd = e.entity_cd
+    LEFT JOIN corr_per_black AS b  ON b.entity_cd  = e.entity_cd
+    LEFT JOIN corr_per_hisp  AS h  ON h.entity_cd  = e.entity_cd
+    LEFT JOIN corr_per_asian AS a  ON a.entity_cd  = e.entity_cd
+    LEFT JOIN corr_per_white AS w  ON w.entity_cd  = e.entity_cd;
+    """, "Create corr_summary")
+
 
     nsum = scalar(conn, "SELECT COUNT(*) FROM corr_summary;")
     print(f"[DEBUG] corr_summary rows: {nsum}")
