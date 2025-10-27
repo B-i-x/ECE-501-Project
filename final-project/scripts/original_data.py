@@ -68,110 +68,75 @@ def corr_sql(x_col):
     """).strip()
 
 def main():
+    import time
+    start_time = time.time()  # <-- Start timer
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="C:/Users/alexr/Documents/Fall 2025/ECE 501/ECE-501-Project/data/sqlite/src2024.db")
     ap.add_argument("--enr", default="C:/Users/alexr/Documents/Fall 2025/ECE 501/ECE-501-Project/data/sqlite/enrollment2024.db")
-    ap.add_argument("--preview", type=int, default=5)
+    ap.add_argument("--year", type=int, default=2024, help="Year to analyze, e.g., 2024")
+    ap.add_argument("--preview", type=int, default=10)
     args = ap.parse_args()
+    year = int(args.year)
 
     print("[INFO] Connecting to in-memory workspace")
     conn = sqlite3.connect(":memory:")
     conn.execute("PRAGMA temp_store=MEMORY;")
     conn.execute("PRAGMA cache_size=-64000;")
-    conn.row_factory = None  # tuples for speed and simple printing
+    conn.row_factory = None
 
     # Attach databases
     run(conn, f"ATTACH '{args.src}' AS src;", "Attach src")
     run(conn, f"ATTACH '{args.enr}' AS enr;", "Attach enr")
 
-    run(conn, dedent("""
-        SELECT COUNT(*) AS n FROM src."Annual EM MATH";
-    """), "Count rows in Annual EM MATH")
-    n1 = scalar(conn, "SELECT COUNT(*) AS n FROM src.\"Annual EM MATH\";")
-    print(f"[DEBUG] Annual EM MATH rows: {n1}")
-
-
-    # # Step: Print distinct subgroup names with actual values
-    # print("\n[INFO] Listing distinct SUBGROUP_NAME values in Annual EM MATH:")
-    # subgroups = run(conn, dedent("""
-    #     SELECT DISTINCT TRIM(SUBGROUP_NAME) AS subgroup
-    #     FROM src."Annual EM MATH"
-    #     ORDER BY subgroup;
-    # """), "Subgroup list", preview=100, fetch_all=True)
-
-    # print(f"[DEBUG] Total distinct subgroups: {len(subgroups)}\n")
-    # for sg in subgroups:
-    #     print(" -", sg[0])
-
-
-
-    run(conn, dedent("""
-        SELECT DISTINCT ASSESSMENT_NAME
-        FROM src."Annual EM MATH"
-        ORDER BY 1
-        LIMIT 50;
-    """), "Distinct assessments in Annual EM MATH")
-    n1 = scalar(conn, "SELECT COUNT(DISTINCT ASSESSMENT_NAME) FROM src.\"Annual EM MATH\";")
-    print(f"[DEBUG] Distinct assessments in Annual EM MATH: {n1}")
-
-
-    # Step 1. Build math_overall view for All Students, grades 3 to 8
+    # Outcome: All Students, any MATH assessment, by school and year
     run(conn, """
-    DROP VIEW IF EXISTS math_overall;
-    CREATE TEMP VIEW math_overall AS
-    SELECT
+      DROP VIEW IF EXISTS math_overall;
+      CREATE TEMP VIEW math_overall AS
+      SELECT
         m.ENTITY_CD AS entity_cd,
         CAST(m.YEAR AS INTEGER) AS year,
-        SUM(CAST(NULLIF(REPLACE(m.NUM_PROF,   ',', ''), '') AS INTEGER))     AS num_prof,
-        SUM(CAST(NULLIF(REPLACE(m.NUM_TESTED, ',', ''), '') AS INTEGER))     AS num_tested
-    FROM src."Annual EM MATH" m
-    WHERE TRIM(UPPER(m.SUBGROUP_NAME)) LIKE 'ALL STUDENTS%'
+        SUM(CAST(NULLIF(REPLACE(m.NUM_PROF,   ',', ''), '') AS INTEGER)) AS num_prof,
+        SUM(CAST(NULLIF(REPLACE(m.NUM_TESTED, ',', ''), '') AS INTEGER)) AS num_tested
+      FROM src."Annual EM MATH" m
+      WHERE TRIM(UPPER(m.SUBGROUP_NAME)) LIKE 'ALL STUDENTS%'
         AND UPPER(m.ASSESSMENT_NAME) LIKE '%MATH%'
-    GROUP BY m.ENTITY_CD, CAST(m.YEAR AS INTEGER);
+      GROUP BY m.ENTITY_CD, CAST(m.YEAR AS INTEGER);
     """, "Create view math_overall")
-    print("[DEBUG] math_overall rows:", scalar(conn, "SELECT COUNT(*) FROM math_overall;"))
-    run(conn, "SELECT * FROM math_overall ORDER BY entity_cd, year LIMIT 10;", "Preview math_overall", preview=10)
+    run(conn, "SELECT COUNT(*) FROM math_overall;", "math_overall count")
 
-    # Step 2. Outcome view math_outcome with proficiency rate
-    run(conn, dedent("""
+    run(conn, """
       DROP VIEW IF EXISTS math_outcome;
       CREATE TEMP VIEW math_outcome AS
       SELECT
         entity_cd,
         year,
-        CASE WHEN num_tested > 0 THEN 1.0 * num_prof / num_tested ELSE NULL END AS math_prof_rate
+        CASE WHEN num_tested > 0 THEN 1.0 * num_prof / num_tested END AS math_prof_rate
       FROM math_overall;
-    """), "Create view math_outcome")
+    """, "Create view math_outcome")
+    run(conn, "SELECT COUNT(*) FROM math_outcome;", "math_outcome count")
 
-    n2 = scalar(conn, "SELECT COUNT(*) FROM math_outcome;")
-    print(f"[DEBUG] math_outcome rows: {n2}")
-    run(conn, "SELECT * FROM math_outcome ORDER BY entity_cd, year LIMIT ?;", "Preview math_outcome", args.preview, params=[args.preview])
-
-    # Step 3. Demographic slice
-    run(conn, dedent("""
+    # Demographics slice by school and year
+    run(conn, """
       DROP VIEW IF EXISTS demo;
       CREATE TEMP VIEW demo AS
       SELECT
         d.ENTITY_CD AS entity_cd,
         CAST(d.YEAR AS INTEGER) AS year,
-        CAST(d.PER_ELL AS REAL)   AS per_ell,
-        CAST(d.PER_SWD AS REAL)   AS per_swd,
+        CAST(d.PER_ELL   AS REAL) AS per_ell,
+        CAST(d.PER_SWD   AS REAL) AS per_swd,
         CAST(d.PER_ECDIS AS REAL) AS per_ecdis,
         CAST(d.PER_BLACK AS REAL) AS per_black,
-        CAST(d.PER_HISP AS REAL)  AS per_hisp,
+        CAST(d.PER_HISP  AS REAL) AS per_hisp,
         CAST(d.PER_ASIAN AS REAL) AS per_asian,
         CAST(d.PER_WHITE AS REAL) AS per_white
       FROM enr."Demographic Factors" d;
-    """), "Create view demo")
+    """, "Create view demo")
 
-    n3 = scalar(conn, "SELECT COUNT(*) FROM demo;")
-    print(f"[DEBUG] demo rows: {n3}")
-    run(conn, "SELECT * FROM demo ORDER BY entity_cd, year LIMIT ?;", "Preview demo", args.preview, params=[args.preview])
-
-    # Step 4. Join pairs of demo with outcome
-    run(conn, dedent("""
-      DROP VIEW IF EXISTS pairs;
-      CREATE TEMP VIEW pairs AS
+    # Cross-sectional pairs for the chosen year
+    run(conn, f"""
+      DROP VIEW IF EXISTS pairs_year;
+      CREATE TEMP VIEW pairs_year AS
       SELECT
         o.entity_cd,
         o.year,
@@ -184,62 +149,108 @@ def main():
         d.per_asian,
         d.per_white
       FROM math_outcome o
-      JOIN demo d ON d.entity_cd = o.entity_cd AND d.year = o.year;
-    """), "Create view pairs")
+      JOIN demo d
+        ON d.entity_cd = o.entity_cd AND d.year = o.year
+      WHERE o.year = {year}
+        AND o.math_prof_rate IS NOT NULL;
+    """, f"Create view pairs_year for {year}")
+    run(conn, "SELECT COUNT(*) FROM pairs_year;", f"pairs_year count {year}")
+    run(conn, "SELECT * FROM pairs_year ORDER BY entity_cd LIMIT 10;", "Preview pairs_year", preview=args.preview)
 
-    n4 = scalar(conn, "SELECT COUNT(*) FROM pairs;")
-    print(f"[DEBUG] pairs rows: {n4}")
-    run(conn, "SELECT * FROM pairs ORDER BY entity_cd, year LIMIT ?;", "Preview pairs", args.preview, params=[args.preview])
-
-    # Step 5. Correlations per school for each subgroup percentage vs math_prof_rate
-    fields = ["per_ell", "per_swd", "per_ecdis", "per_black", "per_hisp", "per_asian", "per_white"]
-
-    # Build individual temp tables for each correlation so we can inspect easily
-    for f in fields:
-        run(conn, f"DROP TABLE IF EXISTS corr_{f};", f"Drop corr_{f}")
-        sql = f"CREATE TEMP TABLE corr_{f} AS {corr_sql(f)};"
-        run(conn, sql, f"Create corr_{f}")
-        cnt = scalar(conn, f"SELECT COUNT(*) FROM corr_{f};")
-        print(f"[DEBUG] corr_{f} rows: {cnt}")
-        run(conn, f"SELECT * FROM corr_{f} ORDER BY entity_cd LIMIT ?;", f"Preview corr_{f}", args.preview, params=[args.preview])
-
-    # Step 6. Join all correlations into one summary
-    run(conn, """
-    DROP TABLE IF EXISTS corr_summary;
-    CREATE TEMP TABLE corr_summary AS
+    # Correlations and simple OLS slope across schools for the chosen year
+    corr_sql = """
+    WITH base AS (
+      SELECT
+        math_prof_rate,
+        per_ell, per_swd, per_ecdis, per_black, per_hisp, per_asian, per_white
+      FROM pairs_year
+      WHERE math_prof_rate IS NOT NULL
+    ),
+    stats AS (
+      SELECT
+        COUNT(*) AS n,
+        SUM(math_prof_rate) AS sumy,
+        SUM(math_prof_rate * math_prof_rate) AS sumy2
+      FROM base
+    ),
+    s_ell AS (
+      SELECT 'per_ell' AS var, COUNT(*) n,
+             SUM(per_ell) sumx, SUM(per_ell*per_ell) sumx2,
+             SUM(per_ell*math_prof_rate) sumxy
+      FROM base WHERE per_ell IS NOT NULL
+    ),
+    s_swd AS (
+      SELECT 'per_swd', COUNT(*), SUM(per_swd), SUM(per_swd*per_swd), SUM(per_swd*math_prof_rate)
+      FROM base WHERE per_swd IS NOT NULL
+    ),
+    s_ecdis AS (
+      SELECT 'per_ecdis', COUNT(*), SUM(per_ecdis), SUM(per_ecdis*per_ecdis), SUM(per_ecdis*math_prof_rate)
+      FROM base WHERE per_ecdis IS NOT NULL
+    ),
+    s_black AS (
+      SELECT 'per_black', COUNT(*), SUM(per_black), SUM(per_black*per_black), SUM(per_black*math_prof_rate)
+      FROM base WHERE per_black IS NOT NULL
+    ),
+    s_hisp AS (
+      SELECT 'per_hisp', COUNT(*), SUM(per_hisp), SUM(per_hisp*per_hisp), SUM(per_hisp*math_prof_rate)
+      FROM base WHERE per_hisp IS NOT NULL
+    ),
+    s_asian AS (
+      SELECT 'per_asian', COUNT(*), SUM(per_asian), SUM(per_asian*per_asian), SUM(per_asian*math_prof_rate)
+      FROM base WHERE per_asian IS NOT NULL
+    ),
+    s_white AS (
+      SELECT 'per_white', COUNT(*), SUM(per_white), SUM(per_white*per_white), SUM(per_white*math_prof_rate)
+      FROM base WHERE per_white IS NOT NULL
+    ),
+    allstats AS (
+      SELECT * FROM s_ell
+      UNION ALL SELECT * FROM s_swd
+      UNION ALL SELECT * FROM s_ecdis
+      UNION ALL SELECT * FROM s_black
+      UNION ALL SELECT * FROM s_hisp
+      UNION ALL SELECT * FROM s_asian
+      UNION ALL SELECT * FROM s_white
+    )
     SELECT
-        e.entity_cd,
-        e.r_per_ell,
-        s.r_per_swd,
-        ec.r_per_ecdis,
-        b.r_per_black,
-        h.r_per_hisp,
-        a.r_per_asian,
-        w.r_per_white
-    FROM corr_per_ell   AS e
-    LEFT JOIN corr_per_swd   AS s  ON s.entity_cd  = e.entity_cd
-    LEFT JOIN corr_per_ecdis AS ec ON ec.entity_cd = e.entity_cd
-    LEFT JOIN corr_per_black AS b  ON b.entity_cd  = e.entity_cd
-    LEFT JOIN corr_per_hisp  AS h  ON h.entity_cd  = e.entity_cd
-    LEFT JOIN corr_per_asian AS a  ON a.entity_cd  = e.entity_cd
-    LEFT JOIN corr_per_white AS w  ON w.entity_cd  = e.entity_cd;
-    """, "Create corr_summary")
+      a.var,
+      a.n,
+      CASE
+        WHEN (a.n * a.sumx2 - a.sumx * a.sumx) <= 0
+          OR (s.n * s.sumy2 - s.sumy * s.sumy) <= 0
+          THEN NULL
+        ELSE (a.n * a.sumxy - a.sumx * s.sumy)
+             / sqrt( (a.n * a.sumx2 - a.sumx * a.sumx)
+                   * (s.n * s.sumy2 - s.sumy * s.sumy) )
+      END AS r,
+      CASE
+        WHEN (a.n * a.sumx2 - a.sumx * a.sumx) = 0
+          THEN NULL
+        ELSE (a.n * a.sumxy - a.sumx * s.sumy)
+             / (a.n * a.sumx2 - a.sumx * a.sumx)
+      END AS slope
+    FROM allstats a
+    CROSS JOIN stats s
+    ORDER BY ABS(r) DESC;
+    """
+    run(conn, corr_sql, f"Cross-sectional correlations for {year}", fetch_all=True)
 
+    # Distribution of proficiency rates for context
+    run(conn, """
+      SELECT
+        COUNT(*) AS n_schools,
+        MIN(math_prof_rate) AS min_rate,
+        AVG(math_prof_rate) AS avg_rate,
+        MAX(math_prof_rate) AS max_rate
+      FROM pairs_year;
+    """, f"Math proficiency distribution {year}")
 
-    nsum = scalar(conn, "SELECT COUNT(*) FROM corr_summary;")
-    print(f"[DEBUG] corr_summary rows: {nsum}")
-    run(conn, "SELECT * FROM corr_summary ORDER BY entity_cd LIMIT ?;", "Preview corr_summary", args.preview, params=[args.preview])
+    total_time = time.time() - start_time
+    print(f"[INFO] Done. Total time: {total_time:.2f} seconds")
 
-    # Optional: show top magnitude correlations for a quick sanity check
-    run(conn, dedent("""
-      SELECT entity_cd, r_per_ell
-      FROM corr_summary
-      WHERE r_per_ell IS NOT NULL
-      ORDER BY ABS(r_per_ell) DESC
-      LIMIT 10;
-    """), "Top 10 by |r_per_ell|", args.preview)
+if __name__ == "__main__":
+    main()
 
-    print("[INFO] Done")
 
 if __name__ == "__main__":
     main()
