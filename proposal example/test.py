@@ -3,10 +3,10 @@ import pandas as pd
 import pyodbc
 from collections import Counter
 
-DATA_PATH = r"data\ny_edu_data\student_educator_database_23_24\STUDED_2024.accdb"
+DATA_PATH = r"data\ny_edu_data\enrollment_database_23_24\ENROLL2024_20241105.accdb"
 
 src = pyodbc.connect(rf"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={DATA_PATH};")
-dst = sqlite3.connect("data/sqlite/studed2024.db")
+dst = sqlite3.connect("data/sqlite/enrollment2024.db")
 
 cur = src.cursor()
 
