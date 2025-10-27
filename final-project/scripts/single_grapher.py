@@ -1,7 +1,6 @@
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
-from math import exp, log
 
 # ==== USER CONFIGURATION ====
 CSV_PATH = "final-project\\experiments\\original_data\\query1\\results.csv"  # <-- replace this
@@ -13,36 +12,39 @@ p50 = []
 p95 = []
 
 with open(CSV_PATH, "r") as f:
-    reader = csv.DictReader(f)
-    for row in reader:
+    r = csv.DictReader(f)
+    for row in r:
         rows.append(float(row["rows"]))
         p50.append(float(row["P50_seconds"]))
         p95.append(float(row["P95_seconds"]))
 
-rows = np.array(rows)
-p50 = np.array(p50)
-p95 = np.array(p95)
+rows = np.array(rows, dtype=float)
+p50  = np.array(p50, dtype=float)
+p95  = np.array(p95, dtype=float)
 
-# ==== FIT EXPONENTIAL TREND FOR P50 ====
-# Model: y = a * e^(b * x)
-# Take logs: ln(y) = ln(a) + b * x  → linear regression on ln(y)
-log_y = np.log(p50)
-coeffs = np.polyfit(rows, log_y, 1)  # slope, intercept in log space
-b = coeffs[0]
-ln_a = coeffs[1]
-a = exp(ln_a)
+# ==== LINEAR FIT FOR P50 ====
+# Model: y = m * x + c
+coeffs = np.polyfit(rows, p50, 1)  # [m, c]
+m, c = coeffs[0], coeffs[1]
+trend_p50 = m * rows + c
 
-# Create smooth x for trendline
-x_smooth = np.linspace(min(rows), max(rows), 200)
-trend_p50 = a * np.exp(b * x_smooth)
+# Compute R²
+y_pred = trend_p50
+ss_res = np.sum((p50 - y_pred) ** 2)
+ss_tot = np.sum((p50 - np.mean(p50)) ** 2)
+r2 = 1 - (ss_res / ss_tot)
 
-print(f"Exponential Fit: P50 ≈ {a:.6f} * exp({b:.6f} * rows)")
+# Smooth line for plotting
+x_smooth = np.linspace(rows.min(), rows.max(), 200)
+trend_smooth = m * x_smooth + c
+
+print(f"Linear Fit: P50 ≈ {m:.6f} * rows + {c:.6f} (R² = {r2:.4f})")
 
 # ==== PLOT ====
-plt.figure()
+plt.figure(figsize=(8, 5))
 plt.plot(rows, p50, marker='o', label="P50 (median)")
 plt.plot(rows, p95, marker='o', label="P95 (95th percentile)")
-plt.plot(x_smooth, trend_p50, linestyle='--', label="P50 Trend (Exponential Fit)")
+plt.plot(x_smooth, trend_smooth, linestyle='--', label=f"P50 Trend (Linear Fit, R²={r2:.3f})")
 
 plt.title("Query Latency vs Rows")
 plt.xlabel("Rows")
@@ -50,7 +52,6 @@ plt.ylabel("Latency (seconds)")
 plt.legend()
 plt.grid(True)
 
-# Save and show
 plt.savefig(OUTPUT_PNG, dpi=300, bbox_inches='tight')
 plt.show()
 
