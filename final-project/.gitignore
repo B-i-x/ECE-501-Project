@@ -44,8 +44,10 @@ data_work/
 # ========================
 figs/*
 !figs/.keep
+!figs/*.png
 plans/*
 !plans/.keep
+
 
 # ========================
 # Logs, reports, and CSVs
@@ -68,3 +70,21 @@ plans/*
 scripts/*.log
 scripts/*.tmp
 tests/*.out
+# ====== local + derived ======
+data_raw/
+data_work/
+db/*.sqlite
+db/*.db
+*.log
+
+# figures (keep .keep, keep exported ERD)
+figs/*
+!figs/.keep
+!figs/*.png
+
+# scripts/outputs, caches
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store

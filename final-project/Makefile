@@ -2,7 +2,12 @@ PY ?= python
 SQLITE ?= sqlite3
 DB := db/nysed.sqlite
 
-.PHONY: help build extract import refresh bench checks indexes views exports vacuum tests
+.PHONY: help build extract import refresh bench indexes views exports vacuum tests fixcsv
+.PHONY: xextract xfixcsv ximport staging star load checks
+
+PY ?= python
+SQLITE ?= sqlite3
+DB := db/nysed.sqlite
 
 help:
 	@echo "Targets:"
@@ -56,3 +61,43 @@ tests:
 	$(SQLITE) $(DB) < tests/test_fk_violations.sql
 	$(SQLITE) $(DB) < tests/test_rates_range.sql
 	$(SQLITE) $(DB) < tests/test_rowcounts.sql
+	
+staging:
+	@echo "Rebuilding persistent staging tables..."
+	@sqlite3 db/nysed.sqlite < sql/09_staging_persistent.sql
+	@echo "Done."
+
+cleanup:
+	@echo "Dropping staging tables..."
+	@sqlite3 db/nysed.sqlite < sql/09_staging_cleanup.sql
+	@echo "Cleanup complete. Run 'make staging' to rebuild staging tables."
+	
+fixcsv:
+	@./scripts/fixcsv_headers.sh
+
+xextract:
+	$(PY) scripts/extract_src.py
+
+xfixcsv:
+	$(PY) scripts/fixcsv_headers.py
+
+ximport:
+	$(PY) scripts/import_csv_to_sqlite.py
+
+staging:
+	$(SQLITE) $(DB) < sql/09_staging_persistent.sql
+
+star:
+	$(SQLITE) $(DB) < sql/00_schema.sql
+
+load:
+	$(SQLITE) $(DB) < sql/10_load_enrollment.sql
+	$(SQLITE) $(DB) < sql/11_load_attendance.sql
+	$(SQLITE) $(DB) < sql/12_load_assessment.sql
+
+checks:
+	$(SQLITE) $(DB) < tests/test_fk_violations.sql
+	$(SQLITE) $(DB) < tests/test_rates_range.sql
+	$(SQLITE) $(DB) < tests/test_rowcounts.sql
+
+

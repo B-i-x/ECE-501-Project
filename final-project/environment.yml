@@ -3,27 +3,15 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  # Core Python
   - python=3.11
-
-  # Data handling
-  - pandas
-  - pyarrow     # for fast CSV / parquet IO
-  - numpy
-
-  # Visualization
-  - matplotlib
-  - tabulate    # optional: pretty tables in console
-
-  # Database
-  # - sqlite      # (provides command-line sqlite3 if you want it)
-
-  # Optional / development tools
-  # - jupyterlab  # if you want notebooks for analysis
-  # - ipython
-
-  # allow pip fallback installs
   - pip
+  - pandas
+  - pyarrow
+  - numpy
+  - matplotlib
+  - tabulate
+  - requests
+  - beautifulsoup4
+  - tqdm
   - pip:
-      # only add packages not available via conda (none for now)
-      - 
+      - chardet  # helps with file encoding edge-cases on Windows
