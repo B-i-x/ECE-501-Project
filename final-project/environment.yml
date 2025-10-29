@@ -13,5 +13,8 @@ dependencies:
   - requests
   - beautifulsoup4
   - tqdm
+  - pyodbc
+  - sqlite
+  - click
   - pip:
       - chardet  # helps with file encoding edge-cases on Windows

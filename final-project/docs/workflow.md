@@ -1,65 +1,70 @@
-# Workflow Cross-Platform
+# NYSED Pipeline Workflow (Cross-Platform, WIP)
 
-## macOS/Linux (needs mdbtools):
-python3 scripts/extract_src.py
-
-macOS/Linux extraction needs mdbtools:
-```shell
-brew install mdbtools (mac) or apt-get install mdbtools (Linux)
+## 0) Repository layout (key paths)
+```
+final-project/
+  data_raw/              # SRCYYYY/*.mdb|*.accdb  (NOT in git)
+  data_work/             # extracted CSVs         (NOT in git)
+  db/nysed.sqlite        # output DB              (NOT in git)
+  scripts/
+    run_pipeline.py
+    extract_src.py
+    fixcsv_headers.py
+    import_csv_to_sqlite.py
+  sql/
+    09_staging_persistent.sql
+    00_schema.sql
+    10_load_enrollment.sql
+    11_load_attendance.sql
+    12_load_assessment.sql
+  tests/
+    test_fk_violations.sql
+    test_rates_range.sql
+    test_rowcounts.sql
+  docs/
+    WORKFLOW.md
 ```
 
-## Windows (no WSL; needs Access Database Engine + pyodbc):
-py -3 scripts\extract_src.py
+## 1) Environment setup
 
-
-### Windows prerequisites
-
-Install “Microsoft Access Database Engine (2016 or 2010)”.
-```powershell
-pip install pyodbc
+### All platforms (Conda)
+```bash
+conda env create -f environment.yml
+conda activate ece501-final
 ```
 
-If your driver name differs, set an env var:
-```powershell
-setx ACCESS_ODBC_DRIVER "Microsoft Access Driver (*.mdb, *.accdb)"
+### Windows
+- Install [Microsoft Access Database Engine 2016 Redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=54920)
+- Verify the ODBC driver exists: `Microsoft Access Driver (*.mdb, *.accdb)`
+
+### macOS
+```bash
+brew install mdbtools
 ```
 
+### Linux
+```bash
+sudo apt update
+sudo apt install mdbtools
+```
 
+## 2) Data placement
 
+```
+final-project/data_raw/SRC2015/*.mdb|*.accdb
+...
+final-project/data_raw/SRC2024/*.mdb|*.accdb
+```
 
-## 1) Extract: Access (.mdb/.accdb) -> CSV (auto-detects table names)
-python scripts/extract_src.py
+Download all NYSED Report Card databases from https://data.nysed.gov/downloads.php
+Unzip into appropriate directories.
 
-## 2) Normalize CSV headers (first line only; safe)
-python scripts/fixcsv_headers.py
+## 3) One-command run
+```bash
+python final-project/scripts/run_pipeline.py
+```
 
-## 3) Import all CSVs into the 4 raw tables (union across years)
-python scripts/import_csv_to_sqlite.py
-
-## 4) Build staging tables (persistent st_* tables)
-sqlite3 db/nysed.sqlite < sql/09_staging_persistent.sql
-
-## 5) Build star schema + load facts
-sqlite3 db/nysed.sqlite < sql/00_schema.sql
-sqlite3 db/nysed.sqlite < sql/10_load_enrollment.sql
-sqlite3 db/nysed.sqlite < sql/11_load_attendance.sql
-sqlite3 db/nysed.sqlite < sql/12_load_assessment.sql
-
-## 6) Quick checks
-sqlite3 db/nysed.sqlite "SELECT 'enrollment', COUNT(*) FROM fact_enrollment;"
-sqlite3 db/nysed.sqlite "SELECT 'attendance', COUNT(*) FROM fact_attendance;"
-sqlite3 db/nysed.sqlite "SELECT 'assessment', COUNT(*) FROM fact_assessment;"
-
-
-
-# (optional) clean extracted CSVs
-rm -rf data_work/*
-
-# run everything end-to-end
-python scripts/run_pipeline.py
-
-# run a subset (example: after CSVs are ready)
-python scripts/run_pipeline.py --only fixcsv,import,staging,star,load,checks
-
-# skip extract if you already have CSVs
-python scripts/run_pipeline.py --skip-extract
+## 4) Verifying run
+```bash
+sqlite3 final-project/db/nysed.sqlite "SELECT count(*) FROM fact_enrollment;"
+```
