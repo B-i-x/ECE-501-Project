@@ -169,15 +169,16 @@ sqlite3 db/nysed.sqlite < tests/test_fk_violations.sql
 ### **Alternative Workflow for macOS/Linux Users**
 
 If you are on **macOS or Linux** and have `make` installed, you can use the Makefile as a **shortcut** to run the same steps as the Python workflow.
-It’s not additional — it’s an *alternative* way to run Steps 3–4 from the main workflow.
+It’s not additional — it’s an alternative way to run Steps 3–4 from the main workflow.
 
-| **Purpose**                        | **Python Command**                                                     | **Make Equivalent** | **Includes `fixcsv_headers.py`?** |
-| ---------------------------------- | ---------------------------------------------------------------------- | ------------------- | --------------------------------- |
-| Extract and normalize CSVs         | `python scripts/extract_src.py` and `python scripts/fixcsv_headers.py` | `make extract`      | Yes                             |
-| Import CSVs into SQLite            | `python scripts/import_csv_to_sqlite.py`                               | `make import`       | —                                 |
-| Build schema, facts, and summaries | `python scripts/run_pipeline.py`                                       | `make build`        | Yes (calls full pipeline)           |
-| Validate database build            | `python scripts/build.py --check`                                      | `make checks`       | —                                 |
-| Run benchmarks                     | `python scripts/time_queries.py`                                       | `make bench`        | —                                 |
+| **Purpose**                        | **Python Command**                                                     | **Make Equivalent** |
+| ---------------------------------- | ---------------------------------------------------------------------- | ------------------- |
+| Extract and normalize CSVs         | `python scripts/extract_src.py` and `python scripts/fixcsv_headers.py` | `make extract`      |
+| Import CSVs into SQLite            | `python scripts/import_csv_to_sqlite.py`                               | `make import`       |
+| Build schema, facts, and summaries | `python scripts/run_pipeline.py`                                       | `make build`        |
+| Validate database build            | `python scripts/build.py --check`                                      | `make checks`       |
+| Run benchmarks                     | `python scripts/time_queries.py`                                       | `make bench`        |
+
 
 > **Note:**
 >
