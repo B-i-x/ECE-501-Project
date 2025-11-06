@@ -5,20 +5,20 @@ description = ""
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "pandas",
-  "pyodbc",
-  "matplotlib",
+    "pandas",
+    "pyodbc",
+    "matplotlib",
 ]
 
 [project.scripts]
-launch_queries = "backend.app_commands:launch"  # <— launching script
+execute_queries = "execute.__init__:run_queries_from_config"  # <— launching script
 
 [build-system]
 requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-package-dir = {"" = "src"}  # we're using a flat (non-src) layout
+package-dir = {"" = "src"}  # updated for src layout
 
 [tool.setuptools.packages.find]
-include = ["backend*"]                   # only package your code
+where = ["src"]  # specify the src directory
