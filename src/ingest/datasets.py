@@ -1,17 +1,10 @@
 from dataclasses import dataclass
 
 @dataclass
-class AppConfig:
-    data_dir = "data"
-    ny_edu_data = data_dir + "/ny_edu_data"
-    sqlite_dir = data_dir + "/sqlite"
-
-@dataclass
 class DataLink:
     url: str
     path_to_data_from_zip_root: str
     folder_name: str
-
 
 
 STUDENT_EDUCATOR_DATABASE_23_24 = DataLink(

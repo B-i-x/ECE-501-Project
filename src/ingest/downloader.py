@@ -19,10 +19,10 @@ import urllib.request
 import zipfile
 import tempfile
 import shutil
-from dataclasses import dataclass
 
 
-from config import AppConfig, DataLink
+from ingest.datasets import DataLink
+from app import AppConfig
 
 
 def safe_mkdir(p: Path):
@@ -170,20 +170,15 @@ def fetch_accdb_from_datalink(link: DataLink) -> int:
 
 
 
+from ingest.datasets import STUDENT_EDUCATOR_DATABASE_23_24
 
-from config import ALL_DATASETS
 def main():
-    total = len(ALL_DATASETS)
     results = []
-    print(f"starting bulk import for {total} dataset(s)")
-    for i, link in enumerate(ALL_DATASETS, start=1):
-        print("")
-        print(f"[{i}/{total}] dataset: {link.folder_name}")
-        print(f"  source: {link.url}")
-        print(f"  target: {AppConfig.ny_edu_data}/{link.folder_name}/{Path(link.path_to_data_from_zip_root).name}")
-        status = fetch_accdb_from_datalink(link)
-        results.append((link.folder_name, status))
-
+    print(f" dataset: {STUDENT_EDUCATOR_DATABASE_23_24.folder_name}")
+    print(f"  source: {STUDENT_EDUCATOR_DATABASE_23_24.url}")
+    print(f"  target: {AppConfig.ny_edu_data}/{STUDENT_EDUCATOR_DATABASE_23_24.folder_name}/{Path(STUDENT_EDUCATOR_DATABASE_23_24.path_to_data_from_zip_root).name}")
+    status = fetch_accdb_from_datalink(STUDENT_EDUCATOR_DATABASE_23_24)
+    results.append((STUDENT_EDUCATOR_DATABASE_23_24.folder_name, status))
     print("\nsummary:")
     for name, status in results:
         if status == 0:

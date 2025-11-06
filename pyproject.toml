@@ -22,3 +22,12 @@ package-dir = {"" = "src"}  # updated for src layout
 
 [tool.setuptools.packages.find]
 where = ["src"]  # specify the src directory
+
+[tool.poetry]
+name = "ingest"
+version = "0.1.0"
+description = ""
+
+[tool.poetry.packages]
+include = [{ include = "ingest", from = "src" }, { include = "app", from = "src" }]
+
