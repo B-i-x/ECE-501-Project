@@ -52,16 +52,16 @@ plt.figure(figsize=(9, 5.5))
 # Data series (4 lines)
 plt.plot(rows, orig_p50, marker='o', label="Original P50")
 plt.plot(rows, orig_p95, marker='s', label="Original P95")
-plt.plot(rows, our_p50,  marker='o', label="Star-Schema P50")
-plt.plot(rows, our_p95,  marker='s', label="Star-Schema P95")
+plt.plot(rows, our_p50,  marker='o', label="Our P50")
+plt.plot(rows, our_p95,  marker='s', label="Our P95")
 
 # Trend lines (2 lines)
 plt.plot(x_smooth, trend_orig_p50, linestyle='--',
          label=f"Original P50 Trend (R²={r2_o:.3f})")
 plt.plot(x_smooth, trend_our_p50,  linestyle='--',
-         label=f"Star-Schema P50 Trend (R²={r2_s:.3f})")
+         label=f"Our P50 Trend (R²={r2_s:.3f})")
 
-plt.title("Query Latency vs Rows — Original vs Star Schema")
+plt.title("Query Latency vs Rows — Original vs Our Schema")
 plt.xlabel("Rows")
 plt.ylabel("Latency (seconds)")
 plt.grid(True, alpha=0.3)
