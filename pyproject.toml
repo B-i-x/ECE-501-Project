@@ -1,0 +1,24 @@
+[project]
+name = "ECE-501-Project"
+version = "1.0.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pandas",
+  "pyodbc",
+  "matplotlib",
+]
+
+[project.scripts]
+launch_queries = "backend.app_commands:launch"  # <— launching script
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}  # we're using a flat (non-src) layout
+
+[tool.setuptools.packages.find]
+include = ["backend*"]                   # only package your code
