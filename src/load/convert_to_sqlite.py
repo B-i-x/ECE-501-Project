@@ -56,7 +56,6 @@ def _copy_table_chunked(table: str, src_conn, dst_conn, chunksize: int = 100_000
 
 def convert_datalink_to_sqlite(
     dl: DataLink,
-    cfg: AppConfig,
     verbose: bool = True,
 ) -> Path:
     """
@@ -67,7 +66,16 @@ def convert_datalink_to_sqlite(
       - The dataset folder must contain exactly one .accdb file.
       - Output file name defaults to the accdb stem + ".db" unless sqlite_name is provided.
     """
-    dataset_root = Path(cfg.ny_edu_data) / dl.folder_name
+    # Early exit if the desired SQLite already exists
+    out_name = dl.folder_name + ".db"
+    sqlite_path = Path(AppConfig.baseline_dir) / out_name
+    if sqlite_path.exists():
+        if verbose:
+            print(f"SQLite already exists: {sqlite_path}  Skipping conversion.")
+        return sqlite_path
+
+
+    dataset_root = Path(AppConfig.ny_edu_data) / dl.folder_name
     if not dataset_root.exists():
         print(f"Dataset folder not found: {dataset_root}, going to download...")
         fetch_accdb_from_datalink(dl)
@@ -83,10 +91,8 @@ def convert_datalink_to_sqlite(
 
     accdb_path = candidates[0]
 
-    _ensure_dirs(cfg.baseline_dir)
-    out_name = dl.folder_name + ".db"
-    sqlite_path = Path(cfg.baseline_dir) / out_name
-
+    _ensure_dirs(AppConfig.baseline_dir)
+    
     driver = _access_driver()
     if not driver:
         raise RuntimeError(
@@ -163,7 +169,6 @@ def convert_datalink_to_sqlite(
 from ingest.datasets import STUDENT_EDUCATOR_DATABASE_23_24, GRADUATION_RATE_23_24
 
 if __name__ == "__main__":
-    cfg = AppConfig()
-    convert_datalink_to_sqlite(GRADUATION_RATE_23_24, cfg)
+    convert_datalink_to_sqlite(GRADUATION_RATE_23_24)
 
     
