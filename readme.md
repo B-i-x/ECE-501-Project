@@ -1,9 +1,13 @@
+# File Structure Overview
+
+
+
 # Setup Instructions
 
 Follow these steps to set up the project environment:
 
 ## 1. Create and Activate Python Virtual Environment
-1. Open a terminal and navigate to the project directory.
+1. Open a terminal and navigate to the project root directory.
 2. Create a virtual environment:
     ```bash
     python -m venv venv
@@ -19,19 +23,14 @@ Follow these steps to set up the project environment:
       ```
 
 ## 2. Install Dependencies
-1. Ensure you have `pip` and `build` installed:
-    ```bash
-    pip install --upgrade pip build
-    ```
+
 2. Install the dependencies from the `pyproject.toml` file:
     ```bash
-    pip install .
-    ```
-
-## 3. Verify Installation
-1. Check that the dependencies are installed correctly:
-    ```bash
-    pip list
+    pip install -e .
     ```
 
 Your environment is now set up and ready to use!
+
+# Usage instructions
+
+All commands are defined in the pyproject.toml
