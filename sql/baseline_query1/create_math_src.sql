@@ -1,4 +1,4 @@
 CREATE TEMP TABLE math_src AS
 SELECT *
-FROM src."Annual EM MATH"
-LIMIT :n_limit;
+FROM reportcard_database_23_24."Annual EM MATH"
+LIMIT CAST(:n_limit AS INTEGER);

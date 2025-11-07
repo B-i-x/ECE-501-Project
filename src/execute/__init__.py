@@ -12,7 +12,7 @@ import sqlite3
 from app.queries import QuerySpec
 from load.convert_to_sqlite import convert_datalink_to_sqlite, get_datalink_sqlite_path
 from ingest.downloader import fetch_accdb_from_datalink
-
+from app import AppConfig
 # ---------- Debug + timeout helpers ----------
 
 def debug_sql(sql: str, params: Optional[dict] = None) -> str:
@@ -95,7 +95,8 @@ def load_sql_sequence(folder: Path, file_list: List[str]) -> List[str]:
 
 def run_queryspec(
     spec: QuerySpec,
-    runs: int = 5,
+    runs: int,
+    dataset_limits: List[int],
     timeout_s: Optional[int] = 300,
     num_lines_to_preview: int = 5,
 ):
@@ -114,7 +115,7 @@ def run_queryspec(
         if not dataset_sqlite_path.exists():
             print(f"Dataset SQLite not found for {dataset.folder_name}, going to download and convert...")
             fetch_accdb_from_datalink(dataset)
-            dataset_sqlite_path = convert_datalink_to_sqlite(dataset, verbose=False)
+            dataset_sqlite_path = convert_datalink_to_sqlite(dataset, verbose=True)
         
         run_sql(
             conn,
@@ -124,45 +125,58 @@ def run_queryspec(
     sql_texts = load_sql_sequence(spec.sql_folder, spec.sql_file_sequence)
 
     latencies = []
-    for r in range(1, runs + 1):
-        t0 = time.perf_counter()
-        for i, sql in enumerate(sql_texts, start=1):
-            desc = f"{spec.name} run {r}/{runs} part {i}/{len(sql_texts)}"
-            run_sql(conn, sql, desc=desc, params=None, preview=num_lines_to_preview, timeout_s=timeout_s)
-        elapsed = time.perf_counter() - t0
-        latencies.append(elapsed)
-        print(f"[RESULT] {spec.name} run {r}/{runs} time={elapsed:.3f}s")
-        conn.execute("PRAGMA optimize;")
-        conn.execute("PRAGMA shrink_memory;")
+    last_result = None
+    for limit in dataset_limits:
+        print(f"\n[INFO] Dataset limit: {limit:,}")
+        latencies = []
+        for r in range(1, runs + 1):
+            t0 = time.perf_counter()
+            for i, sql in enumerate(sql_texts, start=1):
+                desc = f"{spec.name} rows={limit:,} run {r}/{runs} part {i}/{len(sql_texts)}"
+                run_sql(conn, sql, desc=desc,
+                        params={"n_limit": int(limit)},  # <-- pass the dataset limit here
+                        preview=num_lines_to_preview,
+                        timeout_s=timeout_s)
+            elapsed = time.perf_counter() - t0
+            latencies.append(elapsed)
+            print(f"[RESULT] {spec.name} rows={limit:,} run {r}/{runs} time={elapsed:.3f}s")
+            conn.execute("PRAGMA optimize;")
+            conn.execute("PRAGMA shrink_memory;")
 
     latencies.sort()
     p50 = statistics.median(latencies)
     from math import ceil
     idx = max(0, min(len(latencies) - 1, ceil(0.95 * len(latencies)) - 1))
     p95 = latencies[idx]
-    print(f"[SUMMARY] {spec.name} P50={p50:.3f}s P95={p95:.3f}s over {runs} runs")
-    return {"name": spec.name, "version": spec.version, "runs": runs, "p50": p50, "p95": p95}
+    print(f"[SUMMARY] {spec.name} rows={limit:,} P50={p50:.3f}s P95={p95:.3f}s over {runs} runs")
+
+    last_result = {"name": spec.name, "version": spec.version, "runs": runs, "p50": p50, "p95": p95}
+    return last_result
 
 
 # ---------- Script entry ----------
 from app.queries import BASELINE_QUERY_1
 
 def main():
-
+    exec_config = AppConfig.load_execution_config()
     # Run a single QuerySpec as a test
-    res = run_queryspec(
-        BASELINE_QUERY_1,
-        runs=5,
-        timeout_s=300,
-        num_lines_to_preview=5,
-    )
+    # print(exec_config.dataset_partitions_per_query)
+    if BASELINE_QUERY_1.name in exec_config.dataset_partitions_per_query:
+        print(f"\n[INFO] Running {BASELINE_QUERY_1.name} with dataset limits: {exec_config.dataset_partitions_per_query[BASELINE_QUERY_1.name]}")
+        res = run_queryspec(
+            BASELINE_QUERY_1,
+            runs=exec_config.runs_per_query,
+            dataset_limits=exec_config.dataset_partitions_per_query[BASELINE_QUERY_1.name],
+            timeout_s=exec_config.timeout_seconds,
+            num_lines_to_preview=5,
+            )
 
-    with open("results.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["query_name", "version", "runs", "P50_seconds", "P95_seconds"])
-        w.writerow([res["name"], res["version"], res["runs"], f"{res['p50']:.6f}", f"{res['p95']:.6f}"])
+    # with open("results.csv", "w", newline="") as f:
+    #     w = csv.writer(f)
+    #     w.writerow(["query_name", "version", "runs", "P50_seconds", "P95_seconds"])
+    #     w.writerow([res["name"], res["version"], res["runs"], f"{res['p50']:.6f}", f"{res['p95']:.6f}"])
 
-    print(f"\n[INFO] Results saved to results.csv")
+    # print(f"\n[INFO] Results saved to results.csv")
 
 if __name__ == "__main__":
     main()

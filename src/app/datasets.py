@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-@dataclass
+@dataclass(frozen=True)
 class DataLink:
     url: str
     path_to_data_from_zip_root: str
