@@ -1,0 +1,55 @@
+query_config:
+  baseline_query1:
+    execute: true
+    num_runs: 5
+    timeout: 300  # seconds
+  baseline_query2:
+    execute: false
+    sql_folder: "sql/baseline_query2"
+    sql_file_sequence:
+      - "part1.sql"
+      - "part2.sql"
+      - "part3.sql"
+    num_runs: 5
+    timeout: 300  # seconds
+    version: "1.0"
+  baseline_query3:
+    execute: false
+    sql_folder: "sql/baseline_query3"
+    sql_file_sequence:
+      - "part1.sql"
+      - "part2.sql"
+      - "part3.sql"
+    num_runs: 5
+    timeout: 300  # seconds
+    version: "1.0"
+  designed_query1:
+    execute: false
+    sql_folder: "sql/designed_query1"
+    sql_file_sequence:
+      - "part1.sql"
+      - "part2.sql"
+      - "part3.sql"
+    num_runs: 5
+    timeout: 300  # seconds
+    version: "1.0"
+  designed_query2:
+    execute: false
+    sql_folder: "sql/designed_query2"
+    sql_file_sequence:
+      - "part1.sql"
+      - "part2.sql"
+      - "part3.sql"
+    num_runs: 5
+    timeout: 300  # seconds
+    version: "1.0"
+  designed_query3:
+    execute: true
+    sql_folder: "sql/designed_query3"
+    sql_file_sequence:
+      - "part1.sql"
+      - "part2.sql"
+      - "part3.sql"
+    num_runs: 5
+    timeout: 300  # seconds
+    version: "1.0"

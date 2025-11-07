@@ -21,7 +21,7 @@ import tempfile
 import shutil
 
 
-from ingest.datasets import DataLink
+from app.datasets import DataLink
 from app import AppConfig
 
 
@@ -170,7 +170,7 @@ def fetch_accdb_from_datalink(link: DataLink) -> int:
 
 
 
-from ingest.datasets import STUDENT_EDUCATOR_DATABASE_23_24
+from app.datasets import STUDENT_EDUCATOR_DATABASE_23_24
 
 def main():
     results = []

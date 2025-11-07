@@ -9,7 +9,7 @@ from typing import Optional, List
 import pandas as pd
 import pyodbc
 
-from ingest.datasets import DataLink
+from app.datasets import DataLink
 from ingest.downloader import fetch_accdb_from_datalink
 from app import AppConfig
 
@@ -53,6 +53,13 @@ def _copy_table_chunked(table: str, src_conn, dst_conn, chunksize: int = 100_000
     except Exception as e:
         raise RuntimeError(str(e))
 
+def get_datalink_sqlite_path(dl: DataLink) -> Path:
+    """
+    Get the expected SQLite file path for the given DataLink.
+    """
+    out_name = dl.folder_name + ".db"
+    sqlite_path = Path(AppConfig.baseline_dir) / out_name
+    return sqlite_path
 
 def convert_datalink_to_sqlite(
     dl: DataLink,
@@ -60,18 +67,17 @@ def convert_datalink_to_sqlite(
 ) -> Path:
     """
     Convert the single Access .accdb in data/ny_edu_data/<folder_name>/ into a SQLite DB
-    written to cfg.baseline_dir. Returns the SQLite path.
+    written to AppConfig.baseline_dir. Returns the SQLite path.
 
     Rules:
       - The dataset folder must contain exactly one .accdb file.
       - Output file name defaults to the accdb stem + ".db" unless sqlite_name is provided.
     """
+    sqlite_path = get_datalink_sqlite_path(dl)
     # Early exit if the desired SQLite already exists
-    out_name = dl.folder_name + ".db"
-    sqlite_path = Path(AppConfig.baseline_dir) / out_name
     if sqlite_path.exists():
         if verbose:
-            print(f"SQLite already exists: {sqlite_path}  Skipping conversion.")
+            print(f"SQLite for {dl.folder_name} already exists. Skipping conversion.")
         return sqlite_path
 
 
@@ -92,7 +98,7 @@ def convert_datalink_to_sqlite(
     accdb_path = candidates[0]
 
     _ensure_dirs(AppConfig.baseline_dir)
-    
+
     driver = _access_driver()
     if not driver:
         raise RuntimeError(
@@ -166,7 +172,7 @@ def convert_datalink_to_sqlite(
         except Exception:
             pass
 
-from ingest.datasets import STUDENT_EDUCATOR_DATABASE_23_24, GRADUATION_RATE_23_24
+from app.datasets import STUDENT_EDUCATOR_DATABASE_23_24, GRADUATION_RATE_23_24
 
 if __name__ == "__main__":
     convert_datalink_to_sqlite(GRADUATION_RATE_23_24)
