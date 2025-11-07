@@ -21,10 +21,15 @@ from app.datasets import ENROLLMENT_23_24, REPORT_CARD_23_24
 BASELINE_QUERY_1 = QuerySpec(
     name="baseline_query1",
     sql_folder=Path("sql/baseline_query1"),
-    sql_file_sequence=[
-        "part1.sql", 
-        "part2.sql", 
-        "part3.sql"],
+    sql_file_sequence = [
+        "reset.sql",
+        "demo_view.sql",
+        "create_math_src.sql",
+        "create_math_overall.sql",
+        "create_math_outcome.sql",
+        "create_pairs_year.sql",
+        "correlations.sql",
+    ],
     version="1.0",
     dependant_datasets=[ENROLLMENT_23_24, REPORT_CARD_23_24],
 )
