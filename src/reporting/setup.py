@@ -1,7 +1,7 @@
 #db_setup.py
 #Reusable setup for the QueryLaunch / QueryResult SQLite database.
 
-from __future__ import annotations
+# from __future__ import annotations
 import sqlite3
 from pathlib import Path
 from typing import Tuple
@@ -15,14 +15,14 @@ CREATE TABLE IF NOT EXISTS QueryLaunch (
     launch_ID      INTEGER PRIMARY KEY,
     timestamp      TEXT NOT NULL,
     query_name     TEXT NOT NULL,
-    status         TEXT NOT NULL,
     query_version  TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS QueryResult (
     result_ID        INTEGER PRIMARY KEY,
     launch_ID        INTEGER NOT NULL,
-    dataset_size     INTEGER,
+    dataset_size     INTEGER NOT NULL,
+    run_index        INTEGER NOT NULL,
     elapsed_seconds  REAL,
     FOREIGN KEY (launch_ID) REFERENCES QueryLaunch(launch_ID)
         ON UPDATE CASCADE
@@ -65,6 +65,14 @@ def setup_database() -> Tuple[str, bool]:
 
     return (str(path), created)
 
+def get_database_connection() -> sqlite3.Connection:
+    path = Path(AppConfig.result_db_path).expanduser().resolve()
+
+    if not path.exists():
+        setup_database()
+
+    con = sqlite3.connect(str(path))
+    return con
 
 if __name__ == "__main__":
     location, created = setup_database()

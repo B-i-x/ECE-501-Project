@@ -5,100 +5,18 @@ from pdb import run
 import statistics
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import sqlite3
 
+from execute.sql import run_sql, debug_sql, load_sql_sequence
 from app.queries import QuerySpec
 from load.convert_to_sqlite import convert_datalink_to_sqlite, get_datalink_sqlite_path
 from ingest.downloader import fetch_accdb_from_datalink
 from app import AppConfig
-# ---------- Debug + timeout helpers ----------
-
-def debug_sql(sql: str, params: Optional[dict] = None) -> str:
-    if not params:
-        return sql
-    def _esc(v):
-        if v is None: return "NULL"
-        if isinstance(v, (int, float)): return str(v)
-        s = str(v).replace("'", "''")
-        return f"'{s}'"
-    out = sql
-    for k in sorted(params.keys(), key=len, reverse=True):
-        out = out.replace(f":{k}", _esc(params[k]))
-    return out
-
-
-def run_sql(
-    conn: sqlite3.Connection,
-    sql_text: str,
-    desc: str = "",
-    params: Optional[dict] = None,
-    preview: int = 5,
-    timeout_s: Optional[int] = None,
-):
-    start = time.perf_counter()
-    if timeout_s and timeout_s > 0:
-        def _ph():
-            return 1 if time.perf_counter() - start > timeout_s else 0
-        conn.set_progress_handler(_ph, 1000)
-    else:
-        conn.set_progress_handler(None, 0)
-
-    sql = sql_text.strip()
-    print("\n===", desc or "(unnamed)")
-    # print(debug_sql(sql, params))
-
-    # Single vs multi statement (allow one trailing semicolon)
-    sql_no_trailing = sql[:-1] if sql.endswith(";") else sql
-    is_single_stmt = ";" not in sql_no_trailing
-
-    t0 = time.perf_counter()
-    cur = conn.cursor()
-    try:
-        if is_single_stmt:
-            cur.execute(sql, params or {})
-            # preview only for read statements
-            first = sql.split(None, 1)[0].upper() if sql else ""
-            if first in ("SELECT", "WITH", "PRAGMA"):
-                rows = cur.fetchmany(preview)
-                elapsed = time.perf_counter() - t0
-                print(f"[OK] {desc} in {elapsed:.3f}s. Preview {len(rows)} row(s):")
-                for r in rows:
-                    print(r)
-                return rows
-            else:
-                elapsed = time.perf_counter() - t0
-                print(f"[OK] {desc} in {elapsed:.3f}s.")
-                return None
-        else:
-            if params:
-                print("[WARN] Parameters ignored for multi-statement script. Split the SQL if you need params.")
-            cur.executescript(sql)
-            elapsed = time.perf_counter() - t0
-            print(f"[OK] {desc} in {elapsed:.3f}s.")
-            return None
-    except sqlite3.Error as e:
-        elapsed = time.perf_counter() - t0
-        print(f"[ERROR] {desc} after {elapsed:.3f}s -> {e}")
-        raise
-    finally:
-        conn.set_progress_handler(None, 0)
-
-
-
-# ---------- SQL loading ----------
-
-def load_sql_sequence(folder: Path, file_list: List[str]) -> List[str]:
-    sql_texts = []
-    for fname in file_list:
-        p = folder / fname
-        if not p.exists():
-            raise FileNotFoundError(f"SQL file not found: {p}")
-        sql_texts.append(p.read_text(encoding="utf-8"))
-    return sql_texts
-
-
+from reporting.models import QueryLaunch, ResultRecord, DataReportingModel, create_result_record, create_launch_from_query
+from reporting.setup import get_database_connection
+from reporting.operations import create_query_launch, insert_new_result_record
 # ---------- Runner API ----------
 
 def run_queryspec(
@@ -107,7 +25,11 @@ def run_queryspec(
     dataset_limits: List[int],
     timeout_s: Optional[int] = 300,
     num_lines_to_preview: int = 5,
-):
+) -> DataReportingModel:
+    data_reporting_conn = get_database_connection()
+    launch = create_query_launch(data_reporting_conn, create_launch_from_query(spec))
+
+    results = []
     print(f"\n[RUN] {spec.name} v{spec.version}  folder={spec.sql_folder}  runs={runs}  timeout={timeout_s}s")
 
     conn = sqlite3.connect(":memory:")
@@ -134,7 +56,6 @@ def run_queryspec(
     sql_filenames = list(spec.sql_file_sequence)
 
     latencies = []
-    last_result = None
     for limit in dataset_limits:
         print(f"\n[INFO] Dataset limit: {limit:,}")
         latencies = []
@@ -153,11 +74,24 @@ def run_queryspec(
                     preview=num_lines_to_preview,
                     timeout_s=timeout_s,
                 )
+
             elapsed = time.perf_counter() - t0
+            #this is the end of a result and should be stored as a result record   
+            rec = create_result_record(
+                launch_ID=launch.launch_ID,
+                dataset_size=limit,
+                run_index=r,
+                elapsed_seconds=elapsed,
+            )
+            results.append(rec)
+
             latencies.append(elapsed)
             print(f"[RESULT] {spec.name} rows={limit:,} run {r}/{runs} time={elapsed:.3f}s")
             conn.execute("PRAGMA optimize;")
             conn.execute("PRAGMA shrink_memory;")
+
+    for r in results:
+        insert_new_result_record(data_reporting_conn, r)
 
     latencies.sort()
     p50 = statistics.median(latencies)
@@ -166,8 +100,9 @@ def run_queryspec(
     p95 = latencies[idx]
     print(f"[SUMMARY] {spec.name} rows={limit:,} P50={p50:.3f}s P95={p95:.3f}s over {runs} runs")
 
-    last_result = {"name": spec.name, "version": spec.version, "runs": runs, "p50": p50, "p95": p95}
-    return last_result
+    data_reporting_conn.close()
+    # last_result = {"name": spec.name, "version": spec.version, "runs": runs, "p50": p50, "p95": p95}
+    return DataReportingModel(query_launch=launch, result_records=results)
 
 
 
@@ -176,11 +111,11 @@ from app.queries import BASELINE_QUERY_1
 
 def main():
     exec_config = AppConfig.load_execution_config()
-    # Run a single QuerySpec as a test
     # print(exec_config.dataset_partitions_per_query)
     if BASELINE_QUERY_1.name in exec_config.dataset_partitions_per_query:
         print(f"\n[INFO] Running {BASELINE_QUERY_1.name} with dataset limits: {exec_config.dataset_partitions_per_query[BASELINE_QUERY_1.name]}")
-        res = run_queryspec(
+        #this is 1 query launch
+        data = run_queryspec(
             BASELINE_QUERY_1,
             runs=exec_config.runs_per_query,
             dataset_limits=exec_config.dataset_partitions_per_query[BASELINE_QUERY_1.name],
