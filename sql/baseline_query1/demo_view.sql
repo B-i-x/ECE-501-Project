@@ -10,4 +10,4 @@ SELECT
   CAST(d.PER_HISP  AS REAL) AS per_hisp,
   CAST(d.PER_ASIAN AS REAL) AS per_asian,
   CAST(d.PER_WHITE AS REAL) AS per_white
-FROM enr."Demographic Factors" d;
+FROM enrollment_database_23_24."Demographic Factors" d;

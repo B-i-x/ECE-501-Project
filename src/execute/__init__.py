@@ -38,34 +38,42 @@ def run_sql(
     timeout_s: Optional[int] = None,
 ):
     start = time.perf_counter()
-    if timeout_s is not None and timeout_s > 0:
+    if timeout_s and timeout_s > 0:
         def _ph():
-            if time.perf_counter() - start > timeout_s:
-                return 1
-            return 0
+            return 1 if time.perf_counter() - start > timeout_s else 0
         conn.set_progress_handler(_ph, 1000)
     else:
         conn.set_progress_handler(None, 0)
 
     sql = sql_text.strip()
-    # Always print SQL for debugging
     print("\n===", desc or "(unnamed)")
-    print(debug_sql(sql, params))
+    # print(debug_sql(sql, params))
+
+    # Single vs multi statement (allow one trailing semicolon)
+    sql_no_trailing = sql[:-1] if sql.endswith(";") else sql
+    is_single_stmt = ";" not in sql_no_trailing
 
     t0 = time.perf_counter()
     cur = conn.cursor()
-    first = sql.split(None, 1)[0].upper() if sql else ""
-    is_select_like = first in ("SELECT", "WITH", "PRAGMA")
     try:
-        if is_select_like and ";" not in sql.rstrip().rstrip(";"):
+        if is_single_stmt:
             cur.execute(sql, params or {})
-            rows = cur.fetchmany(preview)
-            elapsed = time.perf_counter() - t0
-            print(f"[OK] {desc} in {elapsed:.3f}s. Preview {len(rows)} row(s):")
-            for r in rows:
-                print(r)
-            return rows
+            # preview only for read statements
+            first = sql.split(None, 1)[0].upper() if sql else ""
+            if first in ("SELECT", "WITH", "PRAGMA"):
+                rows = cur.fetchmany(preview)
+                elapsed = time.perf_counter() - t0
+                print(f"[OK] {desc} in {elapsed:.3f}s. Preview {len(rows)} row(s):")
+                for r in rows:
+                    print(r)
+                return rows
+            else:
+                elapsed = time.perf_counter() - t0
+                print(f"[OK] {desc} in {elapsed:.3f}s.")
+                return None
         else:
+            if params:
+                print("[WARN] Parameters ignored for multi-statement script. Split the SQL if you need params.")
             cur.executescript(sql)
             elapsed = time.perf_counter() - t0
             print(f"[OK] {desc} in {elapsed:.3f}s.")
@@ -111,18 +119,19 @@ def run_queryspec(
 
     for dataset in spec.dependant_datasets:
         dataset_sqlite_path = get_datalink_sqlite_path(dataset)  # Ensure dataset is materialized
-        
+
         if not dataset_sqlite_path.exists():
             print(f"Dataset SQLite not found for {dataset.folder_name}, going to download and convert...")
             fetch_accdb_from_datalink(dataset)
             dataset_sqlite_path = convert_datalink_to_sqlite(dataset, verbose=True)
-        
+
         run_sql(
             conn,
             f"ATTACH DATABASE '{dataset_sqlite_path.as_posix()}' AS '{dataset.folder_name}';")
 
-
+    # Load SQL texts and keep filenames in the same order for logging
     sql_texts = load_sql_sequence(spec.sql_folder, spec.sql_file_sequence)
+    sql_filenames = list(spec.sql_file_sequence)
 
     latencies = []
     last_result = None
@@ -131,12 +140,19 @@ def run_queryspec(
         latencies = []
         for r in range(1, runs + 1):
             t0 = time.perf_counter()
-            for i, sql in enumerate(sql_texts, start=1):
-                desc = f"{spec.name} rows={limit:,} run {r}/{runs} part {i}/{len(sql_texts)}"
-                run_sql(conn, sql, desc=desc,
-                        params={"n_limit": int(limit)},  # <-- pass the dataset limit here
-                        preview=num_lines_to_preview,
-                        timeout_s=timeout_s)
+            for i, (fname, sql) in enumerate(zip(sql_filenames, sql_texts), start=1):
+                desc = (
+                    f"{spec.name} rows={limit:,} run {r}/{runs} "
+                    f"part {i}/{len(sql_texts)} [{fname}]"
+                )
+                run_sql(
+                    conn,
+                    sql,
+                    desc=desc,
+                    params={"n_limit": int(limit)},
+                    preview=num_lines_to_preview,
+                    timeout_s=timeout_s,
+                )
             elapsed = time.perf_counter() - t0
             latencies.append(elapsed)
             print(f"[RESULT] {spec.name} rows={limit:,} run {r}/{runs} time={elapsed:.3f}s")
@@ -152,6 +168,7 @@ def run_queryspec(
 
     last_result = {"name": spec.name, "version": spec.version, "runs": runs, "p50": p50, "p95": p95}
     return last_result
+
 
 
 # ---------- Script entry ----------
