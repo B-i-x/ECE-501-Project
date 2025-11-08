@@ -32,6 +32,8 @@ class AppConfig:
     baseline_dir = data_dir + "/baseline" # baseline datasets in sqlite
     execution_config_path = "execution_config.yaml" # query configuration file
 
+    result_db_path = data_dir + "/query_results.db" # results database path
+
     @staticmethod
     def load_execution_config() -> ExecutionConfig:
         """Parse execution_config YAML into an ExecutionConfig object."""
