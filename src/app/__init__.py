@@ -32,8 +32,8 @@ class AppConfig:
     ny_edu_data = data_dir + "/ny_edu_data" # baseline datasets in accdb/mdb
     baseline_dir = data_dir + "/baseline" # baseline datasets in sqlite
     execution_config_path = "execution_config.yaml" # query configuration file
-
     result_db_path = data_dir + "/query_results.db" # results database path
+    graphs = data_dir + "/graphs" # output graphs directory
 
     @staticmethod
     def load_execution_config() -> ExecutionConfig:
