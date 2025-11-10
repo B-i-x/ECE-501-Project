@@ -1,6 +1,8 @@
 execution_config:
   runs_per_query: 5
   timeout_seconds: 30
+  queries_to_run:
+    - baseline_query1
   dataset_partitions_per_query:
     baseline_query1:
       - 10000

@@ -9,6 +9,7 @@ import yaml
 class ExecutionConfig:
     runs_per_query: int
     timeout_seconds: int
+    queries_to_run: List[str]
     dataset_partitions_per_query: Dict[str, List[int]]
 
 def _to_int_list(values: List[Union[int, str]]) -> List[int]:
@@ -60,9 +61,29 @@ class AppConfig:
             raise ValueError("'runs_per_query' must be > 0.")
         if timeout < 0:
             raise ValueError("'timeout_seconds' must be >= 0.")
+        
+
+        qtr_raw = root.get("queries_to_run")
+        if not isinstance(qtr_raw, list) or any(not isinstance(x, str) for x in qtr_raw):
+            raise ValueError("'queries_to_run' must be a list of strings.")
+        # normalize, strip, dedupe while preserving order
+        seen = set()
+        queries_to_run = []
+        for item in qtr_raw:
+            name = item.strip()
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            queries_to_run.append(name)
+
 
         return ExecutionConfig(
             runs_per_query=runs,
+            queries_to_run=queries_to_run,
             timeout_seconds=timeout,
             dataset_partitions_per_query=partitions,
         )
+    
+def test_load_execution_config():
+    config = AppConfig.load_execution_config()
+    print(config)

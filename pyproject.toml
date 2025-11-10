@@ -13,7 +13,8 @@ dependencies = [
 ]
 
 [project.scripts]
-execute_queries = "execute.__init__:run_queries_from_config"  # <— launching script
+run_all = "execute.__init__:run_queryspecs"  # <— launching script
+test_config = "app.__init__:test_load_execution_config"  # <— test script
 
 [build-system]
 requires = ["setuptools>=61.0"]

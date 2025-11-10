@@ -105,7 +105,35 @@ def run_queryspec(
     return DataReportingModel(query_launch=launch, result_records=results)
 
 
+import app.queries as QUERIES_MODULE
+from types import ModuleType
 
+def get_query_specs_by_name(mod: ModuleType) -> Dict[str, QuerySpec]:
+    """Return {spec.name: QuerySpec} mapping, so you do not need the variable name."""
+    return {
+        obj.name: obj
+        for _, obj in vars(mod).items()
+        if isinstance(obj, QuerySpec)
+    }
+
+def run_queryspecs() -> Dict[str, DataReportingModel]:
+    exec_config = AppConfig.load_execution_config()
+    all_query_specs = get_query_specs_by_name(QUERIES_MODULE)
+    results = {}
+    for spec_name in exec_config.queries_to_run:
+        if spec_name not in all_query_specs:
+            raise ValueError(f"Query name '{spec_name}' not found in app.queries Check your execution_config.yaml.")
+        spec = all_query_specs[spec_name]
+        print(f"\n[INFO] Running {spec.name} with dataset limits: {exec_config.dataset_partitions_per_query[spec.name]}")
+        data = run_queryspec(
+            spec,
+            runs=exec_config.runs_per_query,
+            dataset_limits=exec_config.dataset_partitions_per_query[spec.name],
+            timeout_s=exec_config.timeout_seconds,
+            num_lines_to_preview=5,
+        )
+        results[spec.name] = data
+    return results
 # ---------- Script entry ----------
 from app.queries import BASELINE_QUERY_1
 
