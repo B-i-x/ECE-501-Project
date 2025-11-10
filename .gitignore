@@ -2,3 +2,27 @@ venv/
 **.sqlite
 **.db
 data
+**__pycache__/
+**.png
+
+# Python-specific ignores
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# SQLite database files
+*.sqlite3
+*.db-journal
+
+# Environment and IDE settings
+.env
+.idea/
+.vscode/
+*.swp
+*.swo

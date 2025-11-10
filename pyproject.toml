@@ -1,0 +1,36 @@
+[project]
+name = "ECE-501-Project"
+version = "1.0.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "pyodbc",
+    "matplotlib",
+    "pyyaml",
+    "pyperclip"
+]
+
+[project.scripts]
+run_all = "execute.__init__:run_queryspecs"  # <— launching script
+test_config = "app.__init__:test_load_execution_config"  # <— test script
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}  # updated for src layout
+
+[tool.setuptools.packages.find]
+where = ["src"]  # specify the src directory
+
+[tool.poetry]
+name = "ingest"
+version = "0.1.0"
+description = ""
+
+[tool.poetry.packages]
+include = [{ include = "ingest", from = "src" }, { include = "app", from = "src" }]
+
