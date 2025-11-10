@@ -89,6 +89,8 @@ def plot_query_percentiles(
             launch_ids,
         ).fetchall()
 
+        # Runs grouped by dataset_size
+        num_runs = len(rows)
         by_size = defaultdict(list)
         for ds, sec in rows:
             by_size[int(ds)].append(float(sec))
@@ -109,7 +111,7 @@ def plot_query_percentiles(
         ax.plot(sizes, p95s, marker="o", label="P95")
         ax.set_xlabel("Dataset size (rows)")
         ax.set_ylabel("Elapsed time (s)")
-        ax.set_title(f"{query_name} v{query_version} — {subtitle}")
+        ax.set_title(f"{query_name} v{query_version} — Runs:{num_runs}")
         ax.grid(True, which="both", alpha=0.3)
         ax.legend()
 
