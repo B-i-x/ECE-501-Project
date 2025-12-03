@@ -34,7 +34,17 @@ BASELINE_QUERY_1 = QuerySpec(
     dependant_datasets=[ENROLLMENT_23_24, REPORT_CARD_23_24],
 )
 
-BASELINE_QUERY_2 = QuerySpec(
+BASELINE_QUERY_2_V1 = QuerySpec(
+    name="baseline_query2",
+    sql_folder=Path("sql/baseline_query2"),
+    sql_file_sequence = [
+        "query.sql",
+    ],
+    version="1.0",
+    dependant_datasets=[REPORT_CARD_23_24,STUDENT_EDUCATOR_DATABASE_23_24],
+)
+
+BASELINE_QUERY_2_V2 = QuerySpec(
     name="baseline_query2",
     sql_folder=Path("sql/baseline_query2"),
     sql_file_sequence = [

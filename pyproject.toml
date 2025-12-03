@@ -15,7 +15,16 @@ dependencies = [
 [project.scripts]
 run_all = "execute.__init__:run_queryspecs"  # <— launching script
 test_config = "app.__init__:test_load_execution_config"  # <— test script
-plot = "reporting.plotter:plot_query_percentiles_cli" # <— plotting script, the usage is: plot {query_name} {version_label} {include "-all" to plot al results from version, no "all" will only plot latest launch}
+plot = "reporting.plotter:plot_query_percentiles_cli" # <— plotting script
+#the usage is: 
+# plot {query_name} \ 
+#   {version_label} \
+#   {include "all" to plot al results from version, no "all" will only plot latest launch}
+run = "execute.__init__:cli_run_queryspec" # <— single query run script, 
+#usage is: run {query_name} {version_label}
+# run baseline_query2 2.0
+# run baseline_query2 2.0 --runs 10 --dataset-limits 10000,500000
+
 
 [build-system]
 requires = ["setuptools>=61.0"]
