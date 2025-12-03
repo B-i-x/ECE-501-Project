@@ -2,7 +2,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Dict, Iterable
-import yaml
 
 from app.datasets import DataLink
 
