@@ -1,4 +1,11 @@
-WITH math_school AS (
+WITH math_src AS (
+    SELECT *
+    FROM reportcard_database_23_24."Annual EM MATH"
+    WHERE YEAR = 2024
+      AND SUBGROUP_NAME = 'All Students'
+    LIMIT CAST(:n_limit AS INTEGER)
+),
+math_school AS (
     SELECT
         ENTITY_CD,
         YEAR,
@@ -10,20 +17,22 @@ WITH math_school AS (
                        / SUM(CAST(TOTAL_COUNT AS REAL))
             ELSE NULL
         END AS math_prof_rate
-    FROM reportcard_database_23_24."Annual EM MATH"
-    WHERE YEAR = 2024
-      AND SUBGROUP_NAME = 'All Students'
+    FROM math_src
     GROUP BY ENTITY_CD, YEAR
+),
+att_src AS (
+    SELECT *
+    FROM student_educator_database_23_24.Attendance
+    WHERE YEAR = 2024
+    LIMIT CAST(:n_limit AS INTEGER)
 )
-
 SELECT
     a.ENTITY_CD,
     a.ENTITY_NAME,
     a.ATTENDANCE_RATE,
     m.math_prof_rate
-FROM student_educator_database_23_24.Attendance AS a
+FROM att_src AS a
 JOIN math_school AS m
   ON a.ENTITY_CD = m.ENTITY_CD
  AND a.YEAR      = m.YEAR
-WHERE a.YEAR = 2024
-  AND a.ENTITY_NAME NOT LIKE '% SD';
+WHERE a.ENTITY_NAME NOT LIKE '% SD';
