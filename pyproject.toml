@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 run_all = "execute.__init__:run_queryspecs"  # <— launching script
 test_config = "app.__init__:test_load_execution_config"  # <— test script
+plot = "reporting.plotter:plot_query_percentiles_cli" # <— plotting script, the usage is: plot {query_name} {version_label} {include "-all" to plot al results from version, no "all" will only plot latest launch}
 
 [build-system]
 requires = ["setuptools>=61.0"]

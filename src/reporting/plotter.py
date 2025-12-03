@@ -1,11 +1,12 @@
 # plots.py
 import sqlite3
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 from collections import defaultdict
 import statistics
 import math
 import matplotlib.pyplot as plt
 import os
+import argparse
 
 from app import AppConfig
 from reporting.setup import get_database_connection  # uses AppConfig.result_db_path
@@ -120,6 +121,36 @@ def plot_query_percentiles(
         return fig, ax
     finally:
         con.close()
+
+def plot_query_percentiles_cli() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("query_name", help="Name of the query")
+    parser.add_argument("query_version", help="Version of the query")
+    parser.add_argument(
+        "latest_only",
+        help="Use all data instead of only the latest",
+    )
+
+    args = parser.parse_args()
+
+    fig = None
+    if args.latest_only:
+        print("Plotting all launches...")
+        fig, ax = plot_query_percentiles(
+            query_name=args.query_name,
+            query_version=args.query_version,
+            latest_only=False,
+        )
+    else:
+        print("Plotting latest launch only...")
+        fig, ax = plot_query_percentiles(
+            query_name=args.query_name,
+            query_version=args.query_version,
+            latest_only=True,
+        )
+
+    # whatever you want to do with the figure
+    fig.show()
 
 if __name__ == "__main__":
     # Example usage
