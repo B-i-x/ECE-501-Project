@@ -104,8 +104,9 @@ def run_queryspec(
     return DataReportingModel(query_launch=launch, result_records=results)
 
 
+## run all cli method
+
 import app.queries as QUERIES_MODULE
-from types import ModuleType
 
 def get_query_specs_by_name(mod: ModuleType) -> Dict[str, QuerySpec]:
     """Return {spec.name: QuerySpec} mapping, so you do not need the variable name."""
@@ -134,6 +135,7 @@ def run_queryspecs() -> Dict[str, DataReportingModel]:
         results[spec.name] = data
     return results
 
+## run single cli method
 
 def cli_run_queryspec() -> None:
     """
@@ -245,32 +247,3 @@ def cli_run_queryspec() -> None:
 
     print(f"[DONE] {spec.name} v{spec.version} completed.")
     sys.exit(0)
-
-
-
-# ---------- Script entry ----------
-from app.queries import BASELINE_QUERY_1
-
-def main():
-    exec_config = AppConfig.load_execution_config()
-    # print(exec_config.dataset_partitions_per_query)
-    if BASELINE_QUERY_1.name in exec_config.dataset_partitions_per_query:
-        print(f"\n[INFO] Running {BASELINE_QUERY_1.name} with dataset limits: {exec_config.dataset_partitions_per_query[BASELINE_QUERY_1.name]}")
-        #this is 1 query launch
-        data = run_queryspec(
-            BASELINE_QUERY_1,
-            runs=exec_config.runs_per_query,
-            dataset_limits=exec_config.dataset_partitions_per_query[BASELINE_QUERY_1.name],
-            timeout_s=exec_config.timeout_seconds,
-            num_lines_to_preview=5,
-            )
-
-    # with open("results.csv", "w", newline="") as f:
-    #     w = csv.writer(f)
-    #     w.writerow(["query_name", "version", "runs", "P50_seconds", "P95_seconds"])
-    #     w.writerow([res["name"], res["version"], res["runs"], f"{res['p50']:.6f}", f"{res['p95']:.6f}"])
-
-    # print(f"\n[INFO] Results saved to results.csv")
-
-if __name__ == "__main__":
-    main()
