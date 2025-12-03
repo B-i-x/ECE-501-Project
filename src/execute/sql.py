@@ -75,7 +75,6 @@ def run_sql(
         conn.set_progress_handler(None, 0)
 
 
-
 # ---------- SQL loading ----------
 
 def load_sql_sequence(folder: Path, file_list: List[str]) -> List[str]:
@@ -86,3 +85,35 @@ def load_sql_sequence(folder: Path, file_list: List[str]) -> List[str]:
             raise FileNotFoundError(f"SQL file not found: {p}")
         sql_texts.append(p.read_text(encoding="utf-8"))
     return sql_texts
+
+from load.convert_to_sqlite import convert_datalink_to_sqlite, get_datalink_sqlite_path
+from ingest.downloader import fetch_accdb_from_datalink
+from app.queries import QuerySpec
+
+def create_sqlite_conn_for_spec(spec: QuerySpec) -> sqlite3.Connection:
+    """
+    Create an in-memory SQLite connection and attach all dependant_datasets
+    for the given QuerySpec. This is basically the setup part of run_queryspec,
+    but without timing / reporting.
+    """
+    conn = sqlite3.connect(":memory:")
+    conn.execute("PRAGMA temp_store=MEMORY;")
+    conn.execute("PRAGMA cache_size=-64000;")
+    conn.execute("PRAGMA journal_mode=OFF;")
+    conn.execute("PRAGMA synchronous=OFF;")
+    conn.row_factory = None
+
+    for dataset in spec.dependant_datasets:
+        dataset_sqlite_path = get_datalink_sqlite_path(dataset)
+
+        if not dataset_sqlite_path.exists():
+            print(f"Dataset SQLite not found for {dataset.folder_name}, going to download and convert...")
+            fetch_accdb_from_datalink(dataset)
+            dataset_sqlite_path = convert_datalink_to_sqlite(dataset, verbose=True)
+
+        run_sql(
+            conn,
+            f"ATTACH DATABASE '{dataset_sqlite_path.as_posix()}' AS '{dataset.folder_name}';",
+        )
+
+    return conn

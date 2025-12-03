@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
+import sys
 import argparse
-import csv
-from pdb import run
 import statistics
 import time
-from pathlib import Path
 from typing import List, Optional, Dict
+from types import ModuleType
 
 import sqlite3
 
@@ -105,8 +104,9 @@ def run_queryspec(
     return DataReportingModel(query_launch=launch, result_records=results)
 
 
+## run all cli method
+
 import app.queries as QUERIES_MODULE
-from types import ModuleType
 
 def get_query_specs_by_name(mod: ModuleType) -> Dict[str, QuerySpec]:
     """Return {spec.name: QuerySpec} mapping, so you do not need the variable name."""
@@ -134,29 +134,116 @@ def run_queryspecs() -> Dict[str, DataReportingModel]:
         )
         results[spec.name] = data
     return results
-# ---------- Script entry ----------
-from app.queries import BASELINE_QUERY_1
 
-def main():
+## run single cli method
+
+def cli_run_queryspec() -> None:
+    """
+    CLI entry point to run a single QuerySpec by name and version.
+
+    Example:
+        run-queryspec baseline_query2 2.0
+        run-queryspec baseline_query2 2.0 --runs 5 --dataset-limits 10000,50000
+    """
+    parser = argparse.ArgumentParser(
+        description="Run a single QuerySpec by name and version."
+    )
+    parser.add_argument(
+        "query_name",
+        help="Name of the query spec (matches QuerySpec.name)",
+    )
+    parser.add_argument(
+        "version",
+        help="Version string to match (matches QuerySpec.version)",
+    )
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=None,
+        help="Number of runs (defaults to runs_per_query from execution_config).",
+    )
+    parser.add_argument(
+        "--dataset-limits",
+        type=str,
+        default=None,
+        help=(
+            "Comma-separated dataset sizes, e.g. '10000,50000'. "
+            "Defaults to dataset_partitions_per_query[query_name] from execution_config."
+        ),
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="Timeout in seconds (defaults to timeout_seconds from execution_config).",
+    )
+    parser.add_argument(
+        "--preview",
+        type=int,
+        default=5,
+        help="Number of rows to preview per SQL file (default: 5).",
+    )
+
+    args = parser.parse_args()
+
+    # Load execution config for defaults
     exec_config = AppConfig.load_execution_config()
-    # print(exec_config.dataset_partitions_per_query)
-    if BASELINE_QUERY_1.name in exec_config.dataset_partitions_per_query:
-        print(f"\n[INFO] Running {BASELINE_QUERY_1.name} with dataset limits: {exec_config.dataset_partitions_per_query[BASELINE_QUERY_1.name]}")
-        #this is 1 query launch
-        data = run_queryspec(
-            BASELINE_QUERY_1,
-            runs=exec_config.runs_per_query,
-            dataset_limits=exec_config.dataset_partitions_per_query[BASELINE_QUERY_1.name],
-            timeout_s=exec_config.timeout_seconds,
-            num_lines_to_preview=5,
-            )
 
-    # with open("results.csv", "w", newline="") as f:
-    #     w = csv.writer(f)
-    #     w.writerow(["query_name", "version", "runs", "P50_seconds", "P95_seconds"])
-    #     w.writerow([res["name"], res["version"], res["runs"], f"{res['p50']:.6f}", f"{res['p95']:.6f}"])
+    # Collect all QuerySpec objects from the module
+    all_specs = [
+        obj
+        for _, obj in vars(QUERIES_MODULE).items()
+        if isinstance(obj, QuerySpec)
+    ]
 
-    # print(f"\n[INFO] Results saved to results.csv")
+    # Filter by query_name
+    matching_name = [spec for spec in all_specs if spec.name == args.query_name]
+    if not matching_name:
+        available_names = sorted({spec.name for spec in all_specs})
+        parser.error(
+            f"Unknown query_name '{args.query_name}'. "
+            f"Available query names: {', '.join(available_names)}"
+        )
 
-if __name__ == "__main__":
-    main()
+    # Filter by version
+    spec = None
+    for candidate in matching_name:
+        if str(candidate.version) == str(args.version):
+            spec = candidate
+            break
+
+    if spec is None:
+        available_versions = sorted({str(s.version) for s in matching_name})
+        parser.error(
+            f"No QuerySpec found for name='{args.query_name}' "
+            f"with version='{args.version}'. "
+            f"Available versions for this name: {', '.join(available_versions)}"
+        )
+
+    # Resolve dataset limits
+    if args.dataset_limits:
+        dataset_limits = [int(x) for x in args.dataset_limits.split(",") if x.strip()]
+    else:
+        dataset_limits = exec_config.dataset_partitions_per_query.get(
+            spec.name, [0]
+        )
+
+    # Resolve runs and timeout
+    runs = args.runs if args.runs is not None else exec_config.runs_per_query
+    timeout_s = args.timeout if args.timeout is not None else exec_config.timeout_seconds
+
+    # Run the query spec
+    print(
+        f"[INFO] Running {spec.name} v{spec.version} "
+        f"with dataset limits {dataset_limits} for {runs} runs"
+    )
+    _ = run_queryspec(
+        spec,
+        runs=runs,
+        dataset_limits=dataset_limits,
+        timeout_s=timeout_s,
+        num_lines_to_preview=args.preview,
+    )
+
+    print(f"[DONE] {spec.name} v{spec.version} completed.")
+    sys.exit(0)
