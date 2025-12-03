@@ -4,6 +4,7 @@ import argparse
 import statistics
 import time
 from typing import List, Optional, Dict
+from types import ModuleType
 
 import sqlite3
 
@@ -186,22 +187,35 @@ def cli_run_queryspec() -> None:
     # Load execution config for defaults
     exec_config = AppConfig.load_execution_config()
 
-    # Get all specs and find the one requested
-    all_query_specs = get_query_specs_by_name(QUERIES_MODULE)
-    if args.query_name not in all_query_specs:
-        available = ", ".join(sorted(all_query_specs.keys()))
+    # Collect all QuerySpec objects from the module
+    all_specs = [
+        obj
+        for _, obj in vars(QUERIES_MODULE).items()
+        if isinstance(obj, QuerySpec)
+    ]
+
+    # Filter by query_name
+    matching_name = [spec for spec in all_specs if spec.name == args.query_name]
+    if not matching_name:
+        available_names = sorted({spec.name for spec in all_specs})
         parser.error(
             f"Unknown query_name '{args.query_name}'. "
-            f"Available query names: {available}"
+            f"Available query names: {', '.join(available_names)}"
         )
 
-    spec = all_query_specs[args.query_name]
+    # Filter by version
+    spec = None
+    for candidate in matching_name:
+        if str(candidate.version) == str(args.version):
+            spec = candidate
+            break
 
-    # Check version match
-    if str(getattr(spec, "version", "")) != str(args.version):
+    if spec is None:
+        available_versions = sorted({str(s.version) for s in matching_name})
         parser.error(
-            f"Version mismatch for '{args.query_name}': "
-            f"requested {args.version}, spec has {spec.version}"
+            f"No QuerySpec found for name='{args.query_name}' "
+            f"with version='{args.version}'. "
+            f"Available versions for this name: {', '.join(available_versions)}"
         )
 
     # Resolve dataset limits
@@ -212,13 +226,9 @@ def cli_run_queryspec() -> None:
             spec.name, [0]
         )
 
-    # Resolve runs / timeout
+    # Resolve runs and timeout
     runs = args.runs if args.runs is not None else exec_config.runs_per_query
-    timeout_s = (
-        args.timeout
-        if args.timeout is not None
-        else exec_config.timeout_seconds
-    )
+    timeout_s = args.timeout if args.timeout is not None else exec_config.timeout_seconds
 
     # Run the query spec
     print(
@@ -235,6 +245,8 @@ def cli_run_queryspec() -> None:
 
     print(f"[DONE] {spec.name} v{spec.version} completed.")
     sys.exit(0)
+
+
 
 # ---------- Script entry ----------
 from app.queries import BASELINE_QUERY_1

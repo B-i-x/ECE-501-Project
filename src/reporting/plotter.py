@@ -152,6 +152,7 @@ def plot_query_percentiles_cli() -> None:
     # whatever you want to do with the figure
     fig.show()
 
+
 if __name__ == "__main__":
     # Example usage
     fig, ax = plot_query_percentiles("baseline_query1", "1.0", latest_only=False)
