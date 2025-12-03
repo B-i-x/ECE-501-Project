@@ -35,4 +35,8 @@ FROM att_src AS a
 JOIN math_school AS m
   ON a.ENTITY_CD = m.ENTITY_CD
  AND a.YEAR      = m.YEAR
-WHERE a.ENTITY_NAME NOT LIKE '% SD';
+WHERE a.ENTITY_NAME NOT LIKE '% SD'
+  AND m.math_prof_rate IS NOT NULL
+  AND m.math_prof_rate > 0
+  AND a.ATTENDANCE_RATE IS NOT NULL
+  AND a.ATTENDANCE_RATE > 0;

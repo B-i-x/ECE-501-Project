@@ -40,7 +40,7 @@ BASELINE_QUERY_2_V1 = QuerySpec(
     sql_file_sequence = [
         "query.sql",
     ],
-    version="1.1",
+    version="1.2",
     dependant_datasets=[REPORT_CARD_23_24,STUDENT_EDUCATOR_DATABASE_23_24],
 )
 
@@ -50,6 +50,6 @@ BASELINE_QUERY_2_V2 = QuerySpec(
     sql_file_sequence = [
         "correlation.sql",
     ],
-    version="2.1",
+    version="2.2",
     dependant_datasets=[REPORT_CARD_23_24,STUDENT_EDUCATOR_DATABASE_23_24],
 )

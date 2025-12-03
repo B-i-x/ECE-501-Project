@@ -128,8 +128,8 @@ def plot_query_percentiles_cli() -> None:
     parser.add_argument("query_version", help="Version of the query")
     parser.add_argument(
         "latest_only",
+        action="store_false",
         help="Use all data instead of only the latest",
-        default=None
     )
 
     args = parser.parse_args()
