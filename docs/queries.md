@@ -7,4 +7,4 @@ Within the year 2024, across all schools in New York, how does the composition o
 Within 2024, across all schools, how does school-level attendance rate relate to math proficiency rates?
 
 ## Query 3
-From 2018–2024, at the school level, how do year-over-year changes in sub-group composition (PER ELL, PER SWD, PER ECDIS) relate to changes in math proficiency (EM MATH)?
+Within 2024, across all schools, how do per-pupil expenditures relate to math proficiency rates?

@@ -1,5 +1,5 @@
 execution_config:
-  runs_per_query: 30
+  runs_per_query: 5
   timeout_seconds: 30
   queries_to_run:
     - baseline_query2
@@ -15,7 +15,8 @@ execution_config:
       - 100000
       - 500000
     baseline_query3:
+      - 1000
       - 10000
+      - 20000
       - 50000
       - 100000
-      - 500000
