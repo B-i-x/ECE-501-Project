@@ -30,7 +30,7 @@ BASELINE_QUERY_1 = QuerySpec(
         "create_pairs_year.sql",
         "correlations.sql",
     ],
-    version="1.0",
+    version="1.1",
     dependant_datasets=[ENROLLMENT_23_24, REPORT_CARD_23_24],
 )
 
@@ -52,4 +52,14 @@ BASELINE_QUERY_2_V2 = QuerySpec(
     ],
     version="2.2",
     dependant_datasets=[REPORT_CARD_23_24,STUDENT_EDUCATOR_DATABASE_23_24],
+)
+
+BASELINE_QUERY_3 = QuerySpec(
+    name="baseline_query3",
+    sql_folder=Path("sql/baseline_query3"),
+    sql_file_sequence = [
+        "correlation.sql",
+    ],
+    version="1.0",
+    dependant_datasets=[REPORT_CARD_23_24],
 )
