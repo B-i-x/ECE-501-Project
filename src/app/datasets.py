@@ -115,6 +115,12 @@ ENGLISH_LANGUAGE_LEARNERS_22_23 = DataLink(
     folder_name="ell_database_22_23"
 )
 
+STAR_DATASET = DataLink(
+    url="",
+    path_to_data_from_zip_root="star_schema.db",
+    folder_name="star_schema"
+)
+
 ALL_DATASETS = [
     STUDENT_EDUCATOR_DATABASE_23_24,
     REPORT_CARD_23_24,
