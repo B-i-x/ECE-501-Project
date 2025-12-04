@@ -4,7 +4,7 @@ WITH enroll_src AS (
         fe.subgroup_key,
         fe.n_students
     FROM fact_enrollment AS fe
-    WHERE fe.year_key = 2023       -- change to 2024 later
+    WHERE fe.year_key = 2024       -- change to 2024 later
     LIMIT CAST(:n_limit AS INTEGER)
 ),
 enroll_with_names AS (

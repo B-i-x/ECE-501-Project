@@ -11,9 +11,9 @@ WITH math_school AS (
     FROM fact_assessment AS fa
     JOIN dim_subject  AS subj ON fa.subject_key  = subj.subject_key
     JOIN dim_subgroup AS sg   ON fa.subgroup_key = sg.subgroup_key
-    WHERE fa.year_key        = 2023       -- change to 2024 later
+    WHERE fa.year_key        = 2024       -- change to 2024 later
       AND subj.subject_name  = 'Mathematics'
-      AND sg.subgroup_name   = 'All'
+      AND sg.subgroup_name   = 'All Students'
     GROUP BY fa.school_key
     LIMIT CAST(:n_limit AS INTEGER)
 ),
@@ -23,7 +23,7 @@ enroll_src AS (
         fe.subgroup_key,
         fe.n_students
     FROM fact_enrollment AS fe
-    WHERE fe.year_key = 2023       -- change to 2024 later
+    WHERE fe.year_key = 2024       -- change to 2024 later
     LIMIT CAST(:n_limit AS INTEGER)
 ),
 enroll_with_names AS (
