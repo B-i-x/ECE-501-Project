@@ -16,12 +16,22 @@ dependencies = [
 
 [project.scripts]
 run_all = "execute.__init__:run_queryspecs"  # <— launching script
+print_all_queries = "app.queries:print_all_queries_at_their_versions"  # <— print all queries script
 test_config = "app.__init__:test_load_execution_config"  # <— test script
-plot = "reporting.plotter:plot_query_percentiles_cli" # <— plotting script
+single_plot = "reporting.plotter:plot_query_percentiles_cli" # <— plotting script
 #the usage is: 
 # plot {query_name} \ 
 #   {version_label} \
 #   {include "all" to plot al results from version, no "all" will only plot latest launch}
+
+dual_plot = "reporting.plotter:plot_two_query_percentiles_cli" # <— dual plotting script
+# the usage is:
+#   dual_plot {query1_name} \
+#     {query1_version_label} \
+#     {query2_name} \
+#     {query2_version_label} \
+#     [--all-launches to include all launches instead of only the latest for each query]
+
 run = "execute.__init__:cli_run_queryspec" # <— single query run script, 
 #usage is: run {query_name} {version_label}
 # run baseline_query2 2.0
@@ -43,6 +53,6 @@ name = "ingest"
 version = "0.1.0"
 description = ""
 
-[tool.poetry.packages]
-include = [{ include = "ingest", from = "src" }, { include = "app", from = "src" }]
+# [tool.poetry.packages]
+# include = [{ include = "ingest", from = "src" }, { include = "app", from = "src" }]
 

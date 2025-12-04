@@ -63,3 +63,17 @@ BASELINE_QUERY_3 = QuerySpec(
     version="1.0",
     dependant_datasets=[REPORT_CARD_23_24],
 )
+
+def print_all_queries_at_their_versions() -> None:
+    # Find all QuerySpec instances defined in this module
+    specs = [
+        obj
+        for obj in globals().values()
+        if isinstance(obj, QuerySpec)
+    ]
+
+    # Sort for stable, readable output
+    specs.sort(key=lambda s: (s.name, s.version))
+
+    for spec in specs:
+        print(f"{spec.name} {spec.version}")
