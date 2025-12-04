@@ -1,40 +1,29 @@
-WITH math_src AS (
+WITH math_school AS (
     SELECT
-        fa.year_key,
         fa.school_key,
-        fa.tested,
-        fa.n_qual
+        SUM(fa.n_qual) AS total_qual,
+        SUM(fa.tested) AS total_tested,
+        CASE
+            WHEN SUM(fa.tested) > 0
+            THEN 100.0 * SUM(fa.n_qual) / SUM(fa.tested)
+            ELSE NULL
+        END AS math_prof_rate
     FROM fact_assessment AS fa
     JOIN dim_subject  AS subj ON fa.subject_key  = subj.subject_key
     JOIN dim_subgroup AS sg   ON fa.subgroup_key = sg.subgroup_key
-    JOIN dim_year     AS y    ON fa.year_key     = y.year_key
-    WHERE y.school_year_label = '2024'          -- adjust if your dim_year label is different
-      AND subj.subject_name   = 'Mathematics'          -- adjust to match your Math label
-      AND sg.subgroup_name    = 'All'  -- adjust to your "All Students" label
+    WHERE fa.year_key        = 2023       -- change to 2024 later
+      AND subj.subject_name  = 'Mathematics'
+      AND sg.subgroup_name   = 'All'
+    GROUP BY fa.school_key
     LIMIT CAST(:n_limit AS INTEGER)
-),
-math_school AS (
-    SELECT
-        m.school_key,
-        SUM(m.n_qual)  AS total_qual,
-        SUM(m.tested)  AS total_tested,
-        CASE
-            WHEN SUM(m.tested) > 0
-            THEN 100.0 * SUM(m.n_qual) / SUM(m.tested)
-            ELSE NULL
-        END AS math_prof_rate
-    FROM math_src AS m
-    GROUP BY m.school_key
 ),
 enroll_src AS (
     SELECT
-        fe.year_key,
         fe.school_key,
         fe.subgroup_key,
         fe.n_students
     FROM fact_enrollment AS fe
-    JOIN dim_year AS y ON fe.year_key = y.year_key
-    WHERE y.school_year_label = '2024'          -- same year filter
+    WHERE fe.year_key = 2023       -- change to 2024 later
     LIMIT CAST(:n_limit AS INTEGER)
 ),
 enroll_with_names AS (
