@@ -103,7 +103,7 @@ STAR_QUERY_3 = QuerySpec(
     name="star_query3",
     sql_folder=Path("sql/star_query3"),
     sql_file_sequence = [
-        "halfway.sql",
+        "query.sql",
     ],
     version="0.0",
     dependant_datasets=[STAR_DATASET, REPORT_CARD_23_24],
