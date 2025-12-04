@@ -1,5 +1,5 @@
 execution_config:
-  runs_per_query: 5
+  runs_per_query: 30
   timeout_seconds: 30
   queries_to_run:
     - baseline_query2
@@ -23,6 +23,28 @@ execution_config:
       - 200000
       - 300000
     baseline_query3:
+      - 1000
+      - 2000
+      - 5000
+      - 10000
+      - 20000
+      - 50000
+      - 100000
+      - 200000
+      - 300000
+    star_query1:
+      - 500000
+    star_query2:
+      - 1000
+      - 2000
+      - 5000
+      - 10000
+      - 20000
+      - 50000
+      - 100000
+      - 200000
+      - 300000
+    star_query3:
       - 1000
       - 2000
       - 5000

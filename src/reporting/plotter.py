@@ -213,9 +213,10 @@ def plot_two_query_percentiles(
         ax.set_ylabel("Elapsed time (s)")
 
         mode = "latest launch" if latest_only else "all launches"
+        print(f"Number of runs: {n1} for {query1_name}, {n2} for {query2_name}")
         ax.set_title(
-            f"{query1_name} v{query1_version} (runs: {n1}) vs "
-            f"{query2_name} v{query2_version} (runs: {n2})\n{mode}"
+            f"{query1_name} v{query1_version} vs "
+            f"{query2_name} v{query2_version}\n{mode}"
         )
 
         ax.grid(True, which="both", alpha=0.3)
