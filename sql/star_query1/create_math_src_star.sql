@@ -1,5 +1,3 @@
--- create_math_src_star.sql
-
 CREATE TEMP VIEW math_src AS
 SELECT
   s.school_id      AS ENTITY_CD,
