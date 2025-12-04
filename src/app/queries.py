@@ -30,7 +30,7 @@ BASELINE_QUERY_1 = QuerySpec(
         "create_pairs_year.sql",
         "correlations.sql",
     ],
-    version="1.0",
+    version="1.1",
     dependant_datasets=[ENROLLMENT_23_24, REPORT_CARD_23_24],
 )
 

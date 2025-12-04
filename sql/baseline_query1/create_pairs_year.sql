@@ -1,4 +1,3 @@
--- create_pairs_year.sql
 CREATE TEMP VIEW pairs_year AS
 SELECT
   o.entity_cd,
@@ -15,4 +14,5 @@ FROM math_outcome o
 JOIN demo d
   ON d.entity_cd = o.entity_cd AND d.year = o.year
 WHERE o.year = (SELECT MAX(year) FROM math_outcome)
-  AND o.math_prof_rate IS NOT NULL;
+  AND o.math_prof_rate IS NOT NULL
+  AND o.math_prof_rate > 0;
