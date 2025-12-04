@@ -89,6 +89,17 @@ STAR_QUERY_1_0 = QuerySpec(
     dependant_datasets=[STAR_DATASET],
 )
 
+STAR_QUERY_2 = QuerySpec(
+    name="star_query2",
+    sql_folder=Path("sql/star_query2"),
+    sql_file_sequence = [
+        "query.sql",
+    ],
+    version="1.0",
+    dependant_datasets=[STAR_DATASET],
+)
+
+
 
 def print_all_queries_at_their_versions() -> None:
     # Find all QuerySpec instances defined in this module
