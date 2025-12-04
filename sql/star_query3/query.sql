@@ -33,7 +33,6 @@ exp_src AS (
     FROM reportcard_database_23_24."Expenditures per Pupil" AS e
     WHERE e.YEAR = 2024
       AND e.DATA_REPORTED_EXP = 'Y'
-      AND e.DATA_REPORTED_ENR = 'Y'
     LIMIT CAST(:n_limit AS INTEGER)
 ),
 pairs AS (
