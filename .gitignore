@@ -1,7 +1,6 @@
 venv/
 **.sqlite
 **.db
-data
 **__pycache__/
 **.png
 
