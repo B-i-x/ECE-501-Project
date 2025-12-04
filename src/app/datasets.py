@@ -6,7 +6,9 @@ class DataLink:
     path_to_data_from_zip_root: str
     folder_name: str # A unique folder name to store the dataset under data/ny_edu_data/. This is also used to name the output SQLite file.
 
-
+    def sqlite_filename(self) -> str:
+        return self.folder_name + ".db"
+    
 STUDENT_EDUCATOR_DATABASE_23_24 = DataLink(
     url="https://data.nysed.gov/files/studed/23-24/STUDED2024.zip",
     path_to_data_from_zip_root="STUDED_2024.accdb",
