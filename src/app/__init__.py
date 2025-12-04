@@ -34,6 +34,7 @@ class AppConfig:
     execution_config_path = "execution_config.yaml" # query configuration file
     result_db_path = data_dir + "/query_results.db" # results database path
     graphs = data_dir + "/graphs" # output graphs directory
+    star_schema = data_dir + "/star" # star schema folder path
 
     @staticmethod
     def load_execution_config() -> ExecutionConfig:
