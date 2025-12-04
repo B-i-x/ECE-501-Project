@@ -59,7 +59,7 @@ pairs AS (
     FROM att_school AS a
     JOIN math_school AS m
       ON a.school_key = m.school_key
-    WHERE a.attendance_rate IS NOT NULL11
+    WHERE a.attendance_rate IS NOT NULL
       AND a.attendance_rate > 0
       AND m.math_prof_rate IS NOT NULL
       AND m.math_prof_rate > 0

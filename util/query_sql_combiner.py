@@ -9,6 +9,7 @@ import pyperclip as pyperclip
 import app.queries as QUERIES_MODULE
 from app.queries import QuerySpec
 
+
 def get_query_specs_by_name(mod: ModuleType) -> Dict[str, QuerySpec]:
     """Return {spec.name: QuerySpec} mapping, so you do not need the variable name."""
     return {
@@ -16,6 +17,7 @@ def get_query_specs_by_name(mod: ModuleType) -> Dict[str, QuerySpec]:
         for _, obj in vars(mod).items()
         if isinstance(obj, QuerySpec)
     }
+
 
 def _paths_from_spec(spec) -> list[Path]:
     """
@@ -31,21 +33,61 @@ def _paths_from_spec(spec) -> list[Path]:
         raise ValueError("Spec missing sql_file_sequence or files()")
     return [Path(base) / f for f in seq]
 
+
+def _get_spec_version(spec) -> str:
+    """
+    Get the version string from a QuerySpec.
+
+    Supports either:
+    - spec.version as a value
+    - spec.version as a callable returning a value
+    """
+    if not hasattr(spec, "version"):
+        raise AttributeError(f"QuerySpec '{spec.name}' does not define a 'version' attribute")
+
+    v = getattr(spec, "version")
+    if callable(v):
+        v = v()
+
+    if v is None:
+        raise ValueError(f"QuerySpec '{spec.name}' has a None version")
+
+    return str(v)
+
+
 if __name__ == "__main__":
-    
     args = ArgumentParser()
-    args.add_argument("--query_name", type=str, required=True, help="Name of the query to get sql from")
+    args.add_argument(
+        "--query_name",
+        type=str,
+        required=True,
+        help="Name of the query to get sql from",
+    )
+    args.add_argument(
+        "--version",
+        type=str,
+        required=True,
+        help="Expected version of the query spec",
+    )
     parsed = args.parse_args()
 
     queries_by_name = get_query_specs_by_name(QUERIES_MODULE)
 
     if parsed.query_name not in queries_by_name:
         raise ValueError(f"Query name '{parsed.query_name}' not found in app.queries")
+
     spec = queries_by_name[parsed.query_name]
+
+    # Version check
+    spec_version = _get_spec_version(spec)
+    if spec_version != parsed.version:
+        raise ValueError(
+            f"Version mismatch for query '{spec.name}': expected '{parsed.version}', found '{spec_version}'"
+        )
 
     combined_parts: list[str] = []
 
-    print(f"# SQL files for query '{spec.name}':")
+    print(f"# SQL files for query '{spec.name}' (version {spec_version}):")
     for sql_file in _paths_from_spec(spec):
         try:
             content = Path(sql_file).read_text(encoding="utf-8")
@@ -64,4 +106,4 @@ if __name__ == "__main__":
     combined = "".join(combined_parts)
 
     pyperclip.copy(combined)
-    print(f"# Combined SQL for {spec.name} has been copied to your clipboard.")
+    print(f"# Combined SQL for {spec.name} (version {spec_version}) has been copied to your clipboard.")

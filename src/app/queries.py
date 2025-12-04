@@ -89,6 +89,22 @@ STAR_QUERY_1_0 = QuerySpec(
     dependant_datasets=[STAR_DATASET],
 )
 
+STAR_QUERY_1_KAMA = QuerySpec(
+    name="star_query1",
+    sql_folder=Path("sql/star_query1"),
+    sql_file_sequence = [
+        "reset_star.sql",
+        "create_math_src_star.sql",
+        "create_math_overall_star.sql",
+        "create_math_outcome.sql",
+        "demo_view_star.sql",
+        "create_pairs_year.sql",
+        "correlations.sql",
+    ],
+    version="2.0",
+    dependant_datasets=[STAR_DATASET],
+)
+
 STAR_QUERY_2 = QuerySpec(
     name="star_query2",
     sql_folder=Path("sql/star_query2"),
