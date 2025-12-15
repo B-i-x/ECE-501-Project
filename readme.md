@@ -6,7 +6,7 @@ It integrates Access databases into a unified **star schema** that supports anal
 ---
 
 ## Important Note: 
-Because this is a combination of codebases, it is possible some work is duplicated or some things may not work. If it does not run, please try Alex Romero's uploaded code for running queries and you can look through the code here in final-project/sql for sql related to the star schema. Thank you!
+Because this is a combination of codebases, it is possible some work is duplicated or some things may not work. If it does not run, please try Alex's uploaded code for running queries and you can look through the code here in final-project/sql for sql related to the star schema. Thank you!
 
 ---
 
