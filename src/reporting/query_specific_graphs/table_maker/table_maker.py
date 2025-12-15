@@ -219,7 +219,7 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--all-launches",
-        action="store_true",
+        action="store_false",
         help="Aggregate over all launches instead of only the latest launch per query/version",
     )
     p.add_argument(
