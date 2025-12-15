@@ -11,4 +11,5 @@ data
 *.bak
 final-project/.cursor/*
 final-project/db/*
-final-project/docs/*
+final-project/docs/queries_baselines.md
+
