@@ -1,0 +1,76 @@
+# ========================
+# Python cache and bytecode
+# ========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ========================
+# Environment folders
+# ========================
+env/
+.conda/
+conda_env/
+environment.yml.lock
+.venv/
+.env/
+
+# ========================
+# System and OS files
+# ========================
+.DS_Store
+
+# ========================
+# Data and artifacts
+# ========================
+*.db
+data/*.db
+data/**/*.db
+db/*
+
+# Ignore all raw data files but keep folder
+data_raw/
+!data_raw/.keep
+
+data_work/
+*.accdb
+*.mdb
+*.DS_Store
+
+
+# ========================
+# Results, figures, and plans
+# ========================
+figs/*
+!figs/.keep
+!figs/*.png
+plans/*
+!plans/.keep
+docs/queries_baselines.md
+
+# ========================
+# Logs, reports, and CSVs
+# ========================
+*.log
+*.csv
+# Keep static reference CSVs
+!etl/*.csv
+
+# ========================
+# Jupyter and editors
+# ========================
+.ipynb_checkpoints/
+*.swp
+*.tmp
+
+# ========================
+# Optional future-proofing
+# ========================
+scripts/*.log
+scripts/*.tmp
+tests/*.out
+
+# ====== local + derived ======
+*.log
+

@@ -1,113 +1,111 @@
-# Setup Instructions
+# NYSED Educational Data Warehouse — ECE 501 Final Project
 
-Follow these steps to set up the project environment:
+This project builds a **SQLite data warehouse** from the 2024 **New York State Education Department (NYSED) Report Card Databases**.  
+It integrates Access databases into a unified **star schema** that supports analysis of **enrollment composition**, **attendance**, and **academic achievement** (Grades 3–8 ELA and Math).
 
-## 1. Create and Activate Python Virtual Environment
-1. Open a terminal and navigate to the project root directory.
-2. Create a virtual environment:
-    ```bash
-    python -m venv venv
-    ```
-3. Activate the virtual environment:
-    - On Windows:
-      ```bash
-      .\venv\Scripts\activate
-      ```
-    - On macOS/Linux:
-      ```bash
-      source venv/bin/activate
-      ```
+***Note:*** It is possible some work is duplicated when it comes to extracting data, etc.
 
-## 2. Install Dependencies
+---
 
-2. Install the dependencies from the `pyproject.toml` file:
-    ```bash
-    pip install -e .
-    ```
+## Project Objectives
 
-Your environment is now set up and ready to use!
+- Extract and standardize NYSED annual report card datasets (.mdb/.accdb)
+- Build a **reproducible star schema** using SQLite
+- Enable analysis of subgroups, attendance, and proficiency
+- Compare baseline designs (wide vs star) for performance
+- Validate data quality and consistency across years (reach goal)
 
-# Usage instructions
+---
 
-## Important commands
+## 0) Repository layout (key paths)
+```
+ECE-501-Project/
+	readme.md
+	execution_config.yaml
+	pyproject.toml
+	sql/
+		{queries}
+	final-project/
+		README.md
+		data_raw/              # SRCYYYY/*.mdb|*.accdb  (NOT in git)
+		data_work/             # extracted CSVs         (NOT in git)
+		db/star_schema.db      # output DB              (NOT in git)
+		scripts/
+			run_pipeline.py
+```
 
-To run all queries defined as in [in the execution file](/execution_config.yaml)
-```powershell
+## 1) Environment setup
+
+```bash
+cd ECE-501-Project/final-project
+```
+
+### All platforms (Conda)
+```bash
+conda env create -f environment.yml
+conda activate ece501-final
+```
+
+### Windows
+- Install [Microsoft Access Database Engine 2016 Redistributable](https://www.microsoft.com/en-us/download/details.aspx?id=54920)
+- Verify the ODBC driver exists: `Microsoft Access Driver (*.mdb, *.accdb)`
+
+### macOS
+```bash
+brew install mdbtools
+```
+
+### Linux
+```bash
+sudo apt update
+sudo apt install mdbtools
+```
+
+## 2) Data placement
+
+```
+final-project/data_raw/SRC2015/*.mdb|*.accdb
+...
+final-project/data_raw/SRC2024/*.mdb|*.accdb
+```
+
+Download all NYSED Report Card databases from https://data.nysed.gov/downloads.php
+Unzip into appropriate directories.
+
+## 3) One-command run
+```bash
+python final-project/scripts/run_pipeline.py
+```
+
+## 4) Verifying run
+```bash
+sqlite3 final-project/db/nysed.sqlite "SELECT count(*) FROM fact_enrollment;"
+```
+
+## 5) Change environments
+
+You now have a file `ECE-501-Project/final-project/db/star_schema.db` that you will import in the next phase.
+
+```bash
+cp db/star_schema.db ../data/baseline/star_schema.db
+cp data_raw/SRC2024/SRC2024_Group5.accdb ../data/ny_edu_data/reportcard_database_23_24/SRC2024_Group5.accdb
+cd ..
+```
+
+## 6) Run all queries on baseline and star schema
+
+```bash
 run_all
 ```
 
-Make sure config works
-```powershell
+## 7) Test to ensure config works (optional)
+
+```bash
 test_config
 ```
 
-If you want to make new commands, edit pyproject.toml
+## 8) Plot (optional)
 
-
-## File Structure Overview
-All commands are defined in the pyproject.toml
+```bash
+dual_plot
 ```
-ECE-501-Project
-├─ docs
-├─ execution_config.yaml
-├─ pyproject.toml
-├─ readme.md
-├─ sql
-│  └─ {queries}
-├─ src
-│  ├─ app
-│  ├─ execute
-│  ├─ ingest
-│  ├─ load
-│  ├─ reporting
-│  └─ transform
-└─ util
-```
-
-### Docs
-
-Where documentation goes. honestly, right now I am just storing old stuff in there.
-
-### execution_config.yaml
-
-Where you can configure how you want to run your queries. Which queries to run. What datasets to use. Important file
-
-### pyproject.toml
-
-Project environment definition. 
-
-### SQL Directory
-
-Every folder inside the sql directory defines a new query. baseline_query1's name is defined by the folder `sql/baseline_query1`
-All sql files in the folder will be run according to the file sequence. In order to finish the definition of a new folder you need to go to [src->app->queries](/src/app/queries.py) and create a new QuerySpec object. Fill it out as the other queries are. Now the query is fully defined and you can execute it using run_all or run_query
-
-### src/app
-
-Things that are defined and shared across the code base such as query definitions and paths and datasets
-
-### src/execute
-
-Code related to running queries
-
-### src/ingest
-
-Gets the data from the new york website and downloads it
-
-### src/load
-
-Turns the .accdb or .mdb files into sqlite3 .db files that the baseline uses.
-
-### src/reporting
-
-Code related to how we store the resulting data and how to then put it in a graph
-
-### src/transform
-
-Code related to transforming the baseline sqlite files into a more efficient databse
-
-### util
-
-Short scripts
-- query_sql_combiner.py : Gets all sql for a query and puts in your clipboard with good formatting. Good for conversations with LLM when your sql is not working
-- simple_schema_analysis : Prints all the tables and their columns for a sqlite database file (.db). Again, good for conversations with LLM when your setting up your queries
- 

@@ -1,0 +1,5 @@
+---
+description: Ensure the correct Conda environment is activated for all Python operations.
+alwaysApply: true
+---
+When running Python commands or scripts, always activate the Conda environment named 'ece501-final' before execution. Use 'conda activate ece501-final' before any python or pip commands.

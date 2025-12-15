@@ -2,6 +2,8 @@ execution_config:
   runs_per_query: 10
   timeout_seconds: 30
   queries_to_run:
+    - baseline_query1
+    - star_query1
     - baseline_query2
     - star_query2
     - baseline_query3

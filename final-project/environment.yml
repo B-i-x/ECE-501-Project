@@ -1,0 +1,22 @@
+name: ece501-final
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pandas
+  - pyarrow
+  - matplotlib
+  - tabulate
+  - requests
+  - beautifulsoup4
+  - tqdm
+  - pyodbc
+  - sqlite
+  - click
+  - pyyaml
+  - pyperclip
+  - scipy
+  - pip:
+      - chardet  # helps with file encoding edge-cases on Windows
