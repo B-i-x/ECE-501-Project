@@ -8,9 +8,9 @@ WITH math_src AS (
     JOIN dim_subject  AS subj ON fa.subject_key  = subj.subject_key
     JOIN dim_subgroup AS sg   ON fa.subgroup_key = sg.subgroup_key
     JOIN dim_year     AS y    ON fa.year_key     = y.year_key
-    WHERE y.school_year_label = '2024'          -- adjust if your dim_year label is different
-      AND subj.subject_name   = 'Mathematics'          -- adjust to match your Math label
-      AND sg.subgroup_name    = 'All'  -- adjust to your "All Students" label
+    WHERE y.school_year_label = '2024'         
+      AND subj.subject_name   = 'Mathematics'  
+      AND sg.subgroup_name    = 'All'  
     LIMIT CAST(:n_limit AS INTEGER)
 ),
 math_school AS (
