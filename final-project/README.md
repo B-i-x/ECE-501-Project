@@ -177,6 +177,7 @@ It’s not additional — it’s an alternative way to run Steps 3–4 from the 
 | Import CSVs into SQLite            | `python scripts/import_csv_to_sqlite.py`                               | `make import`       |
 | Build schema, facts, and summaries | `python scripts/run_pipeline.py`                                       | `make build`        |
 | Validate database build            | `python scripts/build.py --check`                                      | `make checks`       |
+| Time summary refresh               | `python scripts/time_summary_refresh.py`                               | `make time-summary` |
 | Run benchmarks                     | `python scripts/time_queries.py`                                       | `make bench`        |
 
 
@@ -195,6 +196,9 @@ It’s not additional — it’s an alternative way to run Steps 3–4 from the 
 - Data Dictionary: `docs/data_dictionary.md`
 - Experiments Plan: `docs/experiments_plan.md`
 - Workflow instructions: `docs/WORKFLOW.md`
+- **Rerunning the pipeline**: `docs/RERUN.md` (what to delete, how to rerun)
+- **Expanding to multiple years**: `docs/EXPANSION.md` (how to import all SRC* folders)
+- **Using the star schema**: `docs/USAGE.md` (query examples and how to use summary views)
 
 ---
 

@@ -76,6 +76,16 @@ CREATE TABLE IF NOT EXISTS fact_assessment (
   PRIMARY KEY (year_key, school_key, subject_key, grade_key, subgroup_key)
 );
 
+-- fact_expenditures: year x school (school-level expenditure data)
+CREATE TABLE IF NOT EXISTS fact_expenditures (
+  year_key           INTEGER NOT NULL REFERENCES dim_year(year_key),
+  school_key         INTEGER NOT NULL REFERENCES dim_school(school_key),
+  per_pupil_expenditure REAL,  -- dollars per pupil
+  data_reported_exp  TEXT,     -- 'Y' if expenditure data reported
+  data_reported_enr  TEXT,     -- 'Y' if enrollment data reported
+  PRIMARY KEY (year_key, school_key)
+);
+
 -- summary table created by 20_refresh_summary.sql
 
 -- ========== INDEXES (idempotent) ==========
@@ -93,3 +103,5 @@ CREATE INDEX IF NOT EXISTS ix_att_subgroup         ON fact_attendance(subgroup_k
 CREATE INDEX IF NOT EXISTS ix_assess_school_year   ON fact_assessment(school_key, year_key);
 CREATE INDEX IF NOT EXISTS ix_assess_subject_grade ON fact_assessment(subject_key, grade_key);
 CREATE INDEX IF NOT EXISTS ix_assess_subgroup      ON fact_assessment(subgroup_key);
+
+CREATE INDEX IF NOT EXISTS ix_expend_school_year   ON fact_expenditures(school_key, year_key);

@@ -8,7 +8,7 @@ SELECT
   s.school_key,
   g.subgroup_key,
   a.absent_count,
-  a.absent_rate,
+  a.absence_rate,
   a.enrollment,
   a.DATA_REP_FLAG,
   a.PARTIAL_DATA_FLAG,

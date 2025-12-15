@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Import all year CSVs under data_work/SRCYYYY/ into SQLite raw tables:
-  acc_em_chronic_absenteeism, annual_em_ela, annual_em_math, boces_n_rc
+Import CSVs under data_work/SRCYYYY/ into SQLite raw tables:
+  acc_em_chronic_absenteeism, annual_em_ela, annual_em_math, boces_n_rc, expenditures_per_pupil
 
+By default, imports only SRC2024. Use --all-years to import all SRC* folders.
 Union across years by aligning on common column names.
 Works on Windows/macOS/Linux with Python's sqlite3.
 """
-import sqlite3, csv, pathlib
+import sqlite3, csv, pathlib, argparse
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 DB   = ROOT / "db" / "nysed.sqlite"
@@ -17,6 +18,7 @@ TABLES = [
     "annual_em_ela",
     "annual_em_math",
     "boces_n_rc",
+    "expenditures_per_pupil",
 ]
 
 def ensure_empty_shells(con: sqlite3.Connection):
@@ -29,11 +31,13 @@ def ensure_empty_shells(con: sqlite3.Connection):
     DROP TABLE IF EXISTS annual_em_ela;
     DROP TABLE IF EXISTS annual_em_math;
     DROP TABLE IF EXISTS boces_n_rc;
+    DROP TABLE IF EXISTS expenditures_per_pupil;
 
     CREATE TABLE acc_em_chronic_absenteeism AS SELECT * FROM (SELECT 1 AS dummy) WHERE 0;
     CREATE TABLE annual_em_ela               AS SELECT * FROM (SELECT 1 AS dummy) WHERE 0;
     CREATE TABLE annual_em_math              AS SELECT * FROM (SELECT 1 AS dummy) WHERE 0;
     CREATE TABLE boces_n_rc                  AS SELECT * FROM (SELECT 1 AS dummy) WHERE 0;
+    CREATE TABLE expenditures_per_pupil      AS SELECT * FROM (SELECT 1 AS dummy) WHERE 0;
     """)
     con.commit()
 
@@ -87,22 +91,38 @@ def import_one_file(con: sqlite3.Connection, csv_path: pathlib.Path, target: str
     con.commit()
 
 def main():
+    parser = argparse.ArgumentParser(description="Import CSVs into SQLite raw tables")
+    parser.add_argument("--all-years", action="store_true",
+                       help="Import all SRC* folders (default: only SRC2024)")
+    args = parser.parse_args()
+
     DB.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB.as_posix())
     ensure_empty_shells(con)
 
-    year_dirs = sorted(p for p in CSV_ROOT.glob("SRC*") if p.is_dir())
-    if not year_dirs:
-        print(f"No CSV folders under {CSV_ROOT}/SRC*/. Run extract + fixcsv first.")
+    if args.all_years:
+        year_dirs = sorted(p for p in CSV_ROOT.glob("SRC*") if p.is_dir())
+        print(f"Importing from all year folders: {[d.name for d in year_dirs]}")
+    else:
+        year_dirs = [CSV_ROOT / "SRC2024"]
+        print(f"Importing from SRC2024 only (use --all-years to import all years)")
+
+    if not year_dirs or not any(d.exists() for d in year_dirs):
+        print(f"No CSV folders found. Expected: {[str(d) for d in year_dirs]}")
+        print(f"Run extract + fixcsv first.")
         return
 
     for d in year_dirs:
+        if not d.exists():
+            print(f"   - skip missing {d.name}")
+            continue
         print(f">> Importing CSVs from {d}")
         pairs = [
             (d / "acc_em_chronic_absenteeism.csv", "acc_em_chronic_absenteeism"),
             (d / "annual_em_ela.csv", "annual_em_ela"),
             (d / "annual_em_math.csv", "annual_em_math"),
             (d / "boces_n_rc.csv", "boces_n_rc"),
+            (d / "expenditures_per_pupil.csv", "expenditures_per_pupil"),
         ]
         for path, table in pairs:
             if path.exists():

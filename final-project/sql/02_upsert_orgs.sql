@@ -1,4 +1,4 @@
--- From st_org (built in 09_staging.sql) → dim_district, dim_school
+-- From st_org (built in 09_staging_persistent.sql) → dim_district, dim_school
 
 INSERT OR IGNORE INTO dim_district(district_id, district_name, county_name, nrc_code, nrc_desc)
 SELECT DISTINCT district_id, district_name, county_name, needs_index, needs_index_description

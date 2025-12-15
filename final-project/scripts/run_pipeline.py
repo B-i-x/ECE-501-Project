@@ -3,9 +3,9 @@
 End-to-end pipeline for NYSED SRC → star schema (cross-platform).
 
 Steps (enabled by default; toggle with --skip-* flags):
-  1) extract  : Access (.mdb/.accdb) → CSV (auto-table-detect)
+  1) extract  : Access (.mdb/.accdb) → CSV (default: SRC2024 only; use --all-years in extract_src.py for all years)
   2) fixcsv   : normalize CSV headers (first line only)
-  3) import   : CSVs → raw SQLite tables (union across years)
+  3) import   : CSVs → raw SQLite tables (default: SRC2024 only; use --all-years to import all years)
   4) staging  : build persistent st_* tables
   5) star     : create star schema (dims + facts empty)
   6) load     : populate facts (enrollment, attendance, assessment)

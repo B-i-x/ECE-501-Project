@@ -15,6 +15,7 @@ help:
 	@echo "  make extract  - export needed tables from .mdb/.accdb to data_work/SRCYYYY/*.csv"
 	@echo "  make import   - import CSVs into raw SQLite tables (acc_em_chronic_absenteeism, annual_em_ela, annual_em_math, boces_n_rc)"
 	@echo "  make refresh  - refresh materialized summary only"
+	@echo "  make time-summary - measure summary table refresh time"
 	@echo "  make bench    - run timing experiments"
 	@echo "  make checks   - run QA checks"
 	@echo "  make indexes  - apply index & PRAGMA tuning"
@@ -37,6 +38,9 @@ import:
 refresh:
 	$(SQLITE) $(DB) < sql/20_refresh_summary.sql
 	@echo "Summary refreshed."
+
+time-summary:
+	$(PY) scripts/time_summary_refresh.py
 
 bench:
 	$(PY) experiments/time_queries.py

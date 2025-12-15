@@ -6,17 +6,25 @@ Cross-platform extractor for NYSED SRC databases (.mdb/.accdb) -> CSVs.
   Requires "Microsoft Access Database Engine" and `pip install pyodbc`.
 - macOS/Linux: uses mdbtools (mdb-tables, mdb-export).
 
+By default, extracts only SRC2024. Use --all-years to extract all SRC* folders.
+
 It auto-detects table names across years:
   - Attendance: "Attendance and Suspensions" or "ACC EM Chronic Absenteeism"
   - ELA: union ELA3..ELA8 Subgroup Results (older) OR fallback to "Annual ... ELA"
   - Math: union Math3..Math8 Subgroup Results (older) OR fallback to "Annual ... Math"
   - Orgs: "BOCES and N/RC" (variant patterns handled)
+  - Expenditures: "Expenditures per Pupil" (for per-pupil expenditure data)
 
 Outputs per year:
   data_work/SRCYYYY/acc_em_chronic_absenteeism.csv
   data_work/SRCYYYY/annual_em_ela.csv
   data_work/SRCYYYY/annual_em_math.csv
   data_work/SRCYYYY/boces_n_rc.csv
+  data_work/SRCYYYY/expenditures_per_pupil.csv
+
+Usage:
+  python scripts/extract_src.py              # Extract only SRC2024
+  python scripts/extract_src.py --all-years  # Extract all SRC* folders
 """
 import sys, os, re, csv, pathlib, platform, subprocess
 from typing import List, Optional
@@ -35,9 +43,22 @@ MATH_ANNUAL_PATS = [re.compile(p, re.I) for p in [
     r"Annual\s+E\.?/?M\.?\s+Math", r"Annual.*Math", r"Math.*Annual"
 ]]
 ORG_PAT        = re.compile(r"(BOCES.*N.?/?.?RC|N.?RC|BOCES.*NRC)", re.I)
+EXPENDITURES_PAT = re.compile(r"Expenditures.*Pupil|Per.*Pupil.*Expenditure", re.I)
 
-def list_src_files() -> List[pathlib.Path]:
-    patterns = ["SRC*/*.mdb", "SRC*/*.accdb", "SRC*/*/*.mdb", "SRC*/*/*.accdb"]
+def list_src_files(all_years: bool = False) -> List[pathlib.Path]:
+    """List source database files to extract.
+    
+    Args:
+        all_years: If True, extract from all SRC* folders. If False, only SRC2024.
+    
+    Returns:
+        Sorted list of .mdb/.accdb file paths.
+    """
+    if all_years:
+        patterns = ["SRC*/*.mdb", "SRC*/*.accdb", "SRC*/*/*.mdb", "SRC*/*/*.accdb"]
+    else:
+        patterns = ["SRC2024/*.mdb", "SRC2024/*.accdb", "SRC2024/*/*.mdb", "SRC2024/*/*.accdb"]
+    
     files: List[pathlib.Path] = []
     for pat in patterns:
         files += list(SRC_ROOT.glob(pat))
@@ -194,6 +215,14 @@ def process_one(db: pathlib.Path):
         else:
             print("WARN: org not found")
 
+        # Expenditures
+        exp = _first_match(tables, EXPENDITURES_PAT)
+        if exp:
+            print(f"   - {exp} -> expenditures_per_pupil.csv")
+            _win_query_to_csv(conn, exp, out_dir / "expenditures_per_pupil.csv")
+        else:
+            print("WARN: expenditures not found")
+
         conn.close()
     else:
         # macOS/Linux via mdbtools
@@ -245,10 +274,42 @@ def process_one(db: pathlib.Path):
         else:
             print("WARN: org not found")
 
+        # Expenditures
+        exp = _first_match(tables, EXPENDITURES_PAT)
+        if exp:
+            print(f"   - {exp} -> expenditures_per_pupil.csv")
+            _nix_export_table(db, exp, out_dir / "expenditures_per_pupil.csv")
+        else:
+            print("WARN: expenditures not found")
+
 def main():
-    files = list_src_files()
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Extract NYSED SRC databases to CSVs",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python scripts/extract_src.py              # Extract only SRC2024 (default)
+  python scripts/extract_src.py --all-years # Extract all SRC* folders
+        """
+    )
+    parser.add_argument("--all-years", action="store_true",
+                       help="Extract from all SRC* folders (default: only SRC2024)")
+    args = parser.parse_args()
+    
+    files = list_src_files(all_years=args.all_years)
+    
+    if args.all_years:
+        print("Extracting from all year folders")
+    else:
+        print("Extracting from SRC2024 only (use --all-years to extract all years)")
+    
     if not files:
-        print(f"No .mdb/.accdb under {SRC_ROOT}")
+        print(f"No source files found in {SRC_ROOT}")
+        if not args.all_years:
+            print("  (Looking for SRC2024/*.mdb or SRC2024/*.accdb)")
+        else:
+            print("  (Looking for SRC*/*.mdb or SRC*/*.accdb)")
         sys.exit(1)
     for db in files:
         process_one(db)

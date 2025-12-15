@@ -1,14 +1,33 @@
 raw_label,subgroup_id,subgroup_name
+All,All,All Students
 All Students,All,All Students
-Female,F,Female
-Male,M,Male
-Students with Disabilities,SWD,Students with Disabilities
-English Language Learners,ELL,English Language Learners
-Economically Disadvantaged,ED,Economically Disadvantaged
-Asian,Asian,Asian
-Black,Black,Black
-Hispanic,Hispanic,Hispanic
-White,White,White
 American Indian or Alaska Native,AIAN,American Indian or Alaska Native
-Native Hawaiian or Other Pacific Islander,NHPI,Native Hawaiian or Other Pacific Islander
+Asian,Asian,Asian
+Asian or Native Hawaiian/Other Pacific Islander,Asian_NHPI,Asian or Native Hawaiian/Other Pacific Islander
+Black,Black,Black
+Black or African American,Black,Black
+Economically Disadvantaged,ED,Economically Disadvantaged
+English Language Learner,ELL,English Language Learners
+English Language Learners,ELL,English Language Learners
+Female,F,Female
+General Education Students,GenEd,General Education Students
+Hispanic,Hispanic,Hispanic
+Hispanic or Latino,Hispanic,Hispanic
+Homeless,Homeless,Homeless
+In Foster Care,Foster,In Foster Care
+Male,M,Male
+Migrant,Migrant,Migrant
 Multiracial,Multiracial,Multiracial
+Native Hawaiian or Other Pacific Islander,NHPI,Native Hawaiian or Other Pacific Islander
+Non-Binary,NB,Non-Binary
+Non-English Language Learner,NonELL,Non-English Language Learner
+Not Economically Disadvantaged,NotED,Not Economically Disadvantaged
+Not Homeless,NotHomeless,Not Homeless
+Not in Foster Care,NotFoster,Not in Foster Care
+Not Migrant,NotMigrant,Not Migrant
+Parent in Armed Forces,ParentMilitary,Parent in Armed Forces
+Parent Not in Armed Forces,ParentNotMilitary,Parent Not in Armed Forces
+Small Group Total: Gender,,
+Small Group Total: Race & Ethnicity,,
+Students with Disabilities,SWD,Students with Disabilities
+White,White,White

@@ -2,3 +2,13 @@ venv/
 **.sqlite
 **.db
 data
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.pdf
+*.bak
+final-project/.cursor/*
+final-project/db/*
+final-project/docs/*

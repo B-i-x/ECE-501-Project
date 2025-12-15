@@ -8,6 +8,7 @@ PRAGMA foreign_keys=OFF;
 DROP TABLE IF EXISTS st_years;
 DROP TABLE IF EXISTS st_attendance_em_num;
 DROP TABLE IF EXISTS st_assessment_em_num;
+DROP TABLE IF EXISTS st_expenditures;
 DROP TABLE IF EXISTS st_org;
 DROP TABLE IF EXISTS map_subgroups;
 

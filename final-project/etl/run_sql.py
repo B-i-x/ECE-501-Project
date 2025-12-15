@@ -4,15 +4,16 @@ DB = pathlib.Path("db/nysed.sqlite")
 
 ORDER = [
   "00_schema.sql",
-  "09_staging.sql",       # <-- new: build staging from SRC tables
-  "01_seed_dims.sql",     # can now pull distinct years from staging
-  "02_upsert_orgs.sql",   # if you keep separate; st_org also seeds above
+  "09_staging_persistent.sql",  # build persistent staging from imported raw tables
+  "01_seed_dims.sql",           # can now pull distinct years from staging
+  "02_upsert_orgs.sql",         # populate dim_district and dim_school from st_org
   "10_load_enrollment.sql",
   "11_load_attendance.sql",
   "12_load_assessment.sql",
+  "13_load_expenditures.sql",  # load expenditures fact table
   "20_refresh_summary.sql",
-  "03_indexes.sql",       # optional but nice to reapply
-  "99_checks.sql"         # QA at the end
+  "03_indexes.sql",             # indexes are idempotent (safe to reapply)
+  "99_checks.sql"               # QA at the end
 ]
 
 def exec_script(con, path):
