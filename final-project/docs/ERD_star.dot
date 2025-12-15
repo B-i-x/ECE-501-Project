@@ -1,0 +1,42 @@
+digraph G {
+  graph [overlap=false, splines=true];
+  node  [shape=box, style="rounded,filled", fillcolor=white, fontname="Helvetica"];
+
+  // Fact Tables
+  fact_enrollment   [fillcolor="#f8e8e8"];
+  fact_attendance   [fillcolor="#f8e8e8"];
+  fact_assessment   [fillcolor="#f8e8e8"];
+  fact_expenditures [fillcolor="#f8e8e8"];
+  fact_summary_sys  [fillcolor="#f8e8e8"];
+
+  // Dimension Tables
+  dim_year          [fillcolor="#e8f1ff"];
+  dim_district      [fillcolor="#e8f1ff"];
+  dim_school        [fillcolor="#e8f1ff"];
+  dim_subject       [fillcolor="#e8f1ff"];
+  dim_grade         [fillcolor="#e8f1ff"];
+  dim_subgroup      [fillcolor="#e8f1ff"];
+
+  // Fact → Dimensions
+  fact_enrollment   -> dim_year;
+  fact_enrollment   -> dim_school;
+  fact_enrollment   -> dim_subgroup;
+
+  fact_attendance   -> dim_year;
+  fact_attendance   -> dim_school;
+  fact_attendance   -> dim_subgroup;
+
+  fact_assessment   -> dim_year;
+  fact_assessment   -> dim_school;
+  fact_assessment   -> dim_subject;
+  fact_assessment   -> dim_grade;
+  fact_assessment   -> dim_subgroup;
+
+  fact_expenditures -> dim_year;
+  fact_expenditures -> dim_school;
+
+  fact_summary_sys  -> dim_year;
+  fact_summary_sys  -> dim_district;
+  fact_summary_sys  -> dim_school;
+  fact_summary_sys  -> dim_subgroup;
+}

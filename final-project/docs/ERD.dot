@@ -1,0 +1,33 @@
+digraph G {
+  graph [overlap=false, splines=true];
+  node  [shape=box, style="rounded,filled", fillcolor=white];
+  "dim_district";
+  "dim_school";
+  "dim_year";
+  "dim_subject";
+  "dim_grade";
+  "dim_subgroup";
+  "fact_enrollment";
+  "fact_attendance";
+  "fact_assessment";
+  "fact_expenditures";
+  "fact_summary_sys";
+  "dim_school" -> "dim_district";
+  "fact_enrollment" -> "dim_year";
+  "fact_enrollment" -> "dim_school";
+  "fact_enrollment" -> "dim_subgroup";
+  "fact_attendance" -> "dim_year";
+  "fact_attendance" -> "dim_school";
+  "fact_attendance" -> "dim_subgroup";
+  "fact_assessment" -> "dim_year";
+  "fact_assessment" -> "dim_school";
+  "fact_assessment" -> "dim_subject";
+  "fact_assessment" -> "dim_grade";
+  "fact_assessment" -> "dim_subgroup";
+  "fact_expenditures" -> "dim_year";
+  "fact_expenditures" -> "dim_school";
+  "fact_summary_sys" -> "dim_year";
+  "fact_summary_sys" -> "dim_district";
+  "fact_summary_sys" -> "dim_school";
+  "fact_summary_sys" -> "dim_subgroup";
+}

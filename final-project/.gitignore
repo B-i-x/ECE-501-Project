@@ -47,8 +47,7 @@ figs/*
 !figs/*.png
 plans/*
 !plans/.keep
-docs/
-
+docs/queries_baselines.md
 
 # ========================
 # Logs, reports, and CSVs

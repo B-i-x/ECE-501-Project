@@ -6,10 +6,12 @@ Steps (enabled by default; toggle with --skip-* flags):
   1) extract  : Access (.mdb/.accdb) → CSV (default: SRC2024 only; use --all-years in extract_src.py for all years)
   2) fixcsv   : normalize CSV headers (first line only)
   3) import   : CSVs → raw SQLite tables (default: SRC2024 only; use --all-years to import all years)
-  4) staging  : build persistent st_* tables
-  5) star     : create star schema (dims + facts empty)
-  6) load     : populate facts (enrollment, attendance, assessment)
-  7) checks   : run QA tests (if present)
+  4) map_subgroups : load subgroup mapping CSV into map_subgroups table
+  5) staging  : build persistent st_* tables
+  6) star     : create star schema (dims + facts empty)
+  7) load     : populate facts (enrollment, attendance, assessment)
+  8) indexes  : create indexes for performance
+  9) checks   : run QA tests (if present)
 
 Requires:
   - Python 3.x
@@ -32,7 +34,7 @@ import sqlite3
 from typing import List, Sequence
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DB   = ROOT / "db" / "nysed.sqlite"
+DB   = ROOT / "db" / "nysed.db"
 
 SQL_DIR = ROOT / "sql"
 TESTS_DIR = ROOT / "tests"
@@ -42,6 +44,7 @@ SQL_SCHEMA  = SQL_DIR / "00_schema.sql"
 SQL_LOADS   = [SQL_DIR / "10_load_enrollment.sql",
                SQL_DIR / "11_load_attendance.sql",
                SQL_DIR / "12_load_assessment.sql"]
+SQL_INDEXES = SQL_DIR / "03_indexes.sql"
 
 TEST_FILES  = [TESTS_DIR / "test_fk_violations.sql",
                TESTS_DIR / "test_rates_range.sql",
@@ -50,6 +53,7 @@ TEST_FILES  = [TESTS_DIR / "test_fk_violations.sql",
 EXTRACT_PY  = ROOT / "scripts" / "extract_src.py"
 FIXCSV_PY   = ROOT / "scripts" / "fixcsv_headers.py"
 IMPORT_PY   = ROOT / "scripts" / "import_csv_to_sqlite.py"
+LOAD_MAP_SUBGROUPS_PY = ROOT / "scripts" / "load_map_subgroups.py"
 
 def run_subprocess(cmd: Sequence[str], cwd: pathlib.Path | None = None) -> int:
     """Run a child process and stream output."""
@@ -104,14 +108,16 @@ def run_tests(con: sqlite3.Connection, files: List[pathlib.Path]) -> None:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="NYSED pipeline runner")
-    p.add_argument("--db", default=str(DB), help="Path to SQLite DB (default: db/nysed.sqlite)")
+    p.add_argument("--db", default=str(DB), help="Path to SQLite DB (default: db/nysed.db)")
     # inclusive step control
     p.add_argument("--skip-extract", action="store_true")
     p.add_argument("--skip-fixcsv",  action="store_true")
     p.add_argument("--skip-import",  action="store_true")
+    p.add_argument("--skip-map-subgroups", action="store_true")
     p.add_argument("--skip-staging", action="store_true")
     p.add_argument("--skip-star",    action="store_true")
     p.add_argument("--skip-load",    action="store_true")
+    p.add_argument("--skip-indexes", action="store_true")
     p.add_argument("--skip-checks",  action="store_true")
     p.add_argument("--only", type=str, default="", 
                    help="Comma-separated subset of steps to run (e.g., 'staging,star,load'). Overrides skip flags.")
@@ -132,7 +138,7 @@ def main() -> None:
     if args.only:
         plan_only = {s.strip() for s in args.only.split(",") if s.strip()}
 
-    steps = ["extract", "fixcsv", "import", "staging", "star", "load", "checks"]
+    steps = ["extract", "fixcsv", "import", "map_subgroups", "staging", "star", "load", "indexes", "checks"]
     print("Pipeline plan:", " -> ".join(s for s in steps if should_run(s, args, plan_only)))
     print()
 
@@ -143,7 +149,7 @@ def main() -> None:
         t0 = time.perf_counter()
         if not EXTRACT_PY.exists():
             raise FileNotFoundError(f"Missing {EXTRACT_PY}.")
-        print("=== STEP 1/7: EXTRACT (.mdb/.accdb -> CSV)")
+        print("=== STEP 1/9: EXTRACT (.mdb/.accdb -> CSV)")
         run_python(EXTRACT_PY)
         print(f"=== EXTRACT done in {time.perf_counter()-t0:0.2f}s\n")
 
@@ -152,7 +158,7 @@ def main() -> None:
         t0 = time.perf_counter()
         if not FIXCSV_PY.exists():
             raise FileNotFoundError(f"Missing {FIXCSV_PY}.")
-        print("=== STEP 2/7: FIXCSV (normalize headers)")
+        print("=== STEP 2/9: FIXCSV (normalize headers)")
         run_python(FIXCSV_PY)
         print(f"=== FIXCSV done in {time.perf_counter()-t0:0.2f}s\n")
 
@@ -161,7 +167,7 @@ def main() -> None:
         t0 = time.perf_counter()
         if not IMPORT_PY.exists():
             raise FileNotFoundError(f"Missing {IMPORT_PY}.")
-        print("=== STEP 3/7: IMPORT (CSVs -> raw tables)")
+        print("=== STEP 3/9: IMPORT (CSVs -> raw tables)")
         run_python(IMPORT_PY)
         print(f"=== IMPORT done in {time.perf_counter()-t0:0.2f}s\n")
 
@@ -169,28 +175,44 @@ def main() -> None:
     con = sqlite3.connect(db_path.as_posix())
     con.execute("PRAGMA foreign_keys=ON;")
 
-    # 4) Staging
+    # 4) Load map_subgroups
+    if should_run("map_subgroups", args, plan_only):
+        t0 = time.perf_counter()
+        if not LOAD_MAP_SUBGROUPS_PY.exists():
+            print(f"(!) Skipping missing script: {LOAD_MAP_SUBGROUPS_PY}")
+        else:
+            print("=== STEP 4/9: MAP_SUBGROUPS (load subgroup mapping)")
+            run_python(LOAD_MAP_SUBGROUPS_PY)
+            print(f"=== MAP_SUBGROUPS done in {time.perf_counter()-t0:0.2f}s\n")
+
+    # 5) Staging
     if should_run("staging", args, plan_only):
-        print("=== STEP 4/7: STAGING (build persistent st_* tables)")
+        print("=== STEP 5/9: STAGING (build persistent st_* tables)")
         run_sql_file(con, SQL_STAGING, label="09_staging_persistent.sql")
         print()
 
-    # 5) Star schema
+    # 6) Star schema
     if should_run("star", args, plan_only):
-        print("=== STEP 5/7: STAR (create dims/facts)")
+        print("=== STEP 6/9: STAR (create dims/facts)")
         run_sql_file(con, SQL_SCHEMA, label="00_schema.sql")
         print()
 
-    # 6) Loads
+    # 7) Loads
     if should_run("load", args, plan_only):
-        print("=== STEP 6/7: LOAD (facts)")
+        print("=== STEP 7/9: LOAD (facts)")
         for f in SQL_LOADS:
             run_sql_file(con, f)
         print()
 
-    # 7) Checks
+    # 8) Indexes
+    if should_run("indexes", args, plan_only):
+        print("=== STEP 8/9: INDEXES (create indexes)")
+        run_sql_file(con, SQL_INDEXES, label="03_indexes.sql")
+        print()
+
+    # 9) Checks
     if should_run("checks", args, plan_only):
-        print("=== STEP 7/7: CHECKS (QA tests)")
+        print("=== STEP 9/9: CHECKS (QA tests)")
         run_tests(con, TEST_FILES)
         print()
 

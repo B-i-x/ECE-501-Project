@@ -10,7 +10,7 @@ Works on Windows/macOS/Linux with Python's sqlite3.
 import sqlite3, csv, pathlib, argparse
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-DB   = ROOT / "db" / "nysed.sqlite"
+DB   = ROOT / "db" / "nysed.db"
 CSV_ROOT = ROOT / "data_work"
 
 TABLES = [
