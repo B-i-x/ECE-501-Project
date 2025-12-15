@@ -3,7 +3,10 @@
 This project builds a **SQLite data warehouse** from the 2024 **New York State Education Department (NYSED) Report Card Databases**.  
 It integrates Access databases into a unified **star schema** that supports analysis of **enrollment composition**, **attendance**, and **academic achievement** (Grades 3–8 ELA and Math).
 
-***Note:*** It is possible some work is duplicated when it comes to extracting data, etc.
+---
+
+## Important Note: 
+Because this is a combination of codebases, it is possible some work is duplicated or some things may not work. If it does not run, please try Alex Romero's uploaded code for running queries and you can look through the code here in final-project/sql for sql related to the star schema. Thank you!
 
 ---
 
